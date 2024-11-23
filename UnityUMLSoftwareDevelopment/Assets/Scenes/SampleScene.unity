@@ -177,7 +177,7 @@ MonoBehaviour:
   linePrefab: {fileID: 6183510564679563791, guid: 80610ceab50844e279f7311427975e19, type: 3}
   buttonPrefab: {fileID: 1401402759860315691, guid: bd6cfe9e004f0ed49b464ca039cb8200, type: 3}
   addClassPrefab: {fileID: 1706788085075885950, guid: 30f06da383bc30b45b40bc592f87105d, type: 3}
-  addEdgePrefab: {fileID: 1706788085075885950, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
+  addEdgePrefab: {fileID: 6976362028936240985, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
   removeEdgePrefab: {fileID: 1706788085075885950, guid: 1acd9f3f589d7ed409a9de304624e232, type: 3}
   activityCanvasObj: {fileID: 1796077229}
   factor: 0.2
@@ -883,8 +883,9 @@ MonoBehaviour:
   buttonPrefab: {fileID: 1401402759860315691, guid: bd6cfe9e004f0ed49b464ca039cb8200, type: 3}
   actionNode: {fileID: 2119618641}
   addClassPrefab: {fileID: 1706788085075885950, guid: 30f06da383bc30b45b40bc592f87105d, type: 3}
-  addEdgePrefab: {fileID: 1706788085075885950, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
+  addEdgePrefab: {fileID: 6976362028936240985, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
   removeEdgePrefab: {fileID: 1706788085075885950, guid: 1acd9f3f589d7ed409a9de304624e232, type: 3}
+  class_Diagram: {fileID: 166456045}
   factor: 0.2
 --- !u!114 &1121405492
 MonoBehaviour:
@@ -1066,11 +1067,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2351505566771328526, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328526, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2351505566771328526, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -12
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566771328527, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
       propertyPath: m_BackGroundColor.b
@@ -1090,7 +1095,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566903569412, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 2351505566903569412, guid: acbf65a81ce2cf94f82a0809298acf70, type: 3}
       propertyPath: m_LocalPosition.z

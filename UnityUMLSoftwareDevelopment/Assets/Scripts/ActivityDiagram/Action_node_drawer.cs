@@ -13,8 +13,9 @@ public class Action_node_drawer : MonoBehaviour
     public GameObject namePrefab;
     public UML_activity_diagram activityManager;
 
-    internal GameObject DrawAction(string name)
-    {        
+    internal GameObject DrawAction(string name,int index)
+    {
+        int key = index;
         GameObject node = Instantiate(actionPanelPrefab, Vector3.zero, Quaternion.identity, canvasObj.transform);
         node.name = name;
         //set Action name
@@ -25,21 +26,21 @@ public class Action_node_drawer : MonoBehaviour
         addEdgeButton.GetComponent<Image>().color = Color.magenta;
         TextMeshProUGUI addEdgeText = addEdgeButton.GetComponentInChildren<TextMeshProUGUI>();
         addEdgeText.GetComponent<TMP_Text>().text = "Add Edge";
-        addEdgeButton.GetComponent<Button>().onClick.AddListener(() => AddEdge(name));
+        addEdgeButton.GetComponent<Button>().onClick.AddListener(() => AddEdge(key));
 
         GameObject removeButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, node.transform);
         TextMeshProUGUI removeButtonText = removeButton.GetComponentInChildren<TextMeshProUGUI>();        
         removeButtonText.GetComponent<TMP_Text>().fontSize = 20;
         removeButtonText.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
         removeButtonText.GetComponent<TMP_Text>().text = "Remove Action Node";
-        removeButton.GetComponent<Button>().onClick.AddListener(() => reomoveActionNode(name,node));
+        removeButton.GetComponent<Button>().onClick.AddListener(() => reomoveActionNode(key,node));
         
         GameObject removeEdgeButton = Instantiate(buttonPrefab, node.transform);
         TextMeshProUGUI removeEdgeText = removeEdgeButton.GetComponentInChildren<TextMeshProUGUI>();
         removeEdgeText.GetComponent<TMP_Text>().fontSize = 20;
         removeEdgeText.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
         removeEdgeText.GetComponent<TMP_Text>().text = "Remove Edge";
-        removeEdgeButton.GetComponent<Button>().onClick.AddListener(() => RemoveEdge(name));
+        removeEdgeButton.GetComponent<Button>().onClick.AddListener(() => RemoveEdge(key));
 
         // Set position of the class panel to avoid overlap
         RectTransform rectTransform = node.GetComponent<RectTransform>();
@@ -49,19 +50,19 @@ public class Action_node_drawer : MonoBehaviour
         return node;
     }
    
-    private void AddEdge(string name)
+    private void AddEdge(int key)
     {
-        activityManager.addEdge(name);
+        activityManager.addEdge(key);
     }
 
-    private void RemoveEdge(string name)
+    private void RemoveEdge(int key)
     {
-        activityManager.removeEdge(name);
+        activityManager.removeEdge(key);
     }
-    private void reomoveActionNode(string name, GameObject node)
+    private void reomoveActionNode(int key, GameObject node)
     {
         Destroy(node);
-        activityManager.removeActionClass(name);
+        activityManager.removeActionClass(key);
     }
 
 }

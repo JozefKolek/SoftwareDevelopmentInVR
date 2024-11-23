@@ -38,8 +38,8 @@ public class UML_class_diagram : MonoBehaviour
         graph = new GeometryGraph();
         settings = new SugiyamaLayoutSettings
         {
-            LayerSeparation = 30,
-            NodeSeparation = 20            
+            LayerSeparation = 50,
+            NodeSeparation = 50            
         };
         settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;        
 
@@ -51,25 +51,8 @@ public class UML_class_diagram : MonoBehaviour
             units.SetParent(transform);
         }
 
-        GenerateUMLDiagram();
-        foreach (var claz in classObjects)
-        {
-            Debug.Log("zacinam trieda " + claz.name);
-            foreach (var connect in claz.connections)
-            {
-                Debug.Log("from " + claz.name + " to " + connect.Key + " connect " + connect.Value);
-            }
-            foreach (var method in claz.methodCommands)
-            {
-                Debug.Log("metodak: " + method.Key);
-                foreach (var command in method.Value)
-                {
-                    Debug.Log(method.Key + " " + command);
-                }
-            }
-
-        }
-    }
+        GenerateUMLDiagram();        
+    }    
 
     public void GenerateUMLDiagram()
     {
@@ -142,22 +125,31 @@ public class UML_class_diagram : MonoBehaviour
                     DrawConnectionLine(classObj.UInode.transform, targetClass.UInode.transform, classObj, targetClass);
                     Edge msaglHrana = new Edge(classObj.vrchol, targetClass.vrchol);
                     classObj.hrany.Add(targetClass.name, msaglHrana);
+                    graph.Edges.Add(msaglHrana);
                 }
             }
         }
 
         LayoutHelpers.CalculateLayout(graph, settings, null);
-        float maxX = canvasObj.GetComponent<RectTransform>().rect.width / 2;
-        float maxY = canvasObj.GetComponent<RectTransform>().rect.height / 2;
+
+        RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
+        float canvasWidth = canvasRect.rect.width / 2;  // Half-width for clamping in anchored space
+        float canvasHeight = canvasRect.rect.height / 2; // Half-height for clamping in anchored space
 
         foreach (var kvp in classObjects)
         {
             Node msaglNode = kvp.vrchol;
 
+            // Calculate the new position based on MSAGL layout
             Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor, (float)msaglNode.Center.Y * factor);
 
+            // Clamp the position to keep within canvas bounds
+            newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth+150, canvasWidth-150);
+            newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight+150, canvasHeight-150);
+
+            // Apply the clamped position to the UI node
             RectTransform rectTransform = kvp.UInode.GetComponent<RectTransform>();
-            rectTransform.anchoredPosition = newPosition;                      
+            rectTransform.anchoredPosition = newPosition;
         }
     }    
 
@@ -192,7 +184,6 @@ public class UML_class_diagram : MonoBehaviour
             {
                 RectTransform rectTransform = classObj.UInode.GetComponent<RectTransform>();
                 rectTransform.anchoredPosition = new Vector2(offsetX * (index % 5), offsetY * (index / 5));
-                Debug.Log($"{classObj.name} position: {rectTransform.anchoredPosition}");
                 index++;
             }
         }
@@ -246,6 +237,21 @@ public class UML_class_diagram : MonoBehaviour
         }
     }
 
+    internal int AddActivityNode(string text, string method, string name)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {
+            int newKey = 2;
+            foreach(int key in classObj.commandKeys[method].Keys) { if (key > newKey) { newKey = key; } }
+            classObj.commandKeys[method].Add(newKey+1, text);
+            classObj.methodCommands[method].Add(text);
+            classObj.commandEdges[method].Add(newKey+1, new Dictionary<int, string>());
+            return newKey+1;
+        }
+        return -1;
+    }
+
     private void AddClass(GameObject addClassPopUp)
     {
         addClassPopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add class to graph";
@@ -268,7 +274,6 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.methods.Add(method);
-            Debug.Log("Method " + method + " added");
             redrawGraph();
         }
     }
@@ -279,8 +284,16 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.attributes.Add(attribute);
-            Debug.Log("Attribute " + attribute + " added");
             redrawGraph();
+        }
+    }
+
+    public void AddActionEdge(int key, int targetIndex, string method, string connection, string name)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {            
+            classObj.commandEdges[method][key].Add(targetIndex, connection);
         }
     }
 
@@ -290,7 +303,6 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.attributes.Remove(attribute);
-            Debug.Log($"Attribute '{attribute}' removed from class '{className}' in data structure.");
         }
     }
 
@@ -300,8 +312,7 @@ public class UML_class_diagram : MonoBehaviour
         Class_object classObj = classObjects.Find(obj => obj.name == className);
         if (classObj != null)
         {
-            classObj.methods.Remove(method);
-            Debug.Log($"Method '{method}' removed from class '{className}' in data structure.");            
+            classObj.methods.Remove(method);            
         }        
     }
 
@@ -312,13 +323,43 @@ public class UML_class_diagram : MonoBehaviour
         {
             List<string> target_classes = new List<string>();
             foreach(var target in classObj.connections.Keys) { target_classes.Add(target); }
-            foreach(var target in classObj.connections.Keys) { Debug.Log("On select class " + target); }
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
             targetClassesMenu.ClearOptions();
             targetClassesMenu.AddOptions(target_classes);
             removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge from class";
             removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(name));
             removeEdgePopUp.SetActive(true);            
+        }
+    }
+
+    internal void removeActionClass(string method, int key, string name)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {
+            if (!classObj.commandKeys[method][key].Equals("start") || !classObj.commandKeys[method][key].Equals("end")) 
+            { 
+                //!!!!!pozor na repetetivnost nemusi byt ideal do buducna
+                classObj.methodCommands[method].Remove(classObj.commandKeys[method][key]); 
+            }
+            classObj.commandEdges[method].Remove(key);
+            classObj.commandKeys[method].Remove(key);
+            foreach(var command in classObj.commandEdges[method])
+            {
+                if (classObj.commandEdges[method][command.Key].ContainsKey(key))
+                {
+                    classObj.commandEdges[method][command.Key].Remove(key);
+                }
+            }
+        }     
+    }
+
+    internal void removeActionEdge(int key, int targetIndex, string method, string name)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {
+            classObj.commandEdges[method][key].Remove(targetIndex);
         }
     }
 
@@ -330,7 +371,6 @@ public class UML_class_diagram : MonoBehaviour
         {
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();            
             string target_class = targetClassesMenu.options[targetClassesMenu.value].text;
-            Debug.Log("From to " + name  + " ffg "+ target_class);
             if (fromClass.connections.ContainsKey(target_class))
             {
                 fromClass.connections.Remove(target_class);
@@ -345,7 +385,6 @@ public class UML_class_diagram : MonoBehaviour
                 Destroy(fromClass.UIedges[target_class]);
                 fromClass.UIedges.Remove(target_class);
             }            
-            Debug.Log("Edge from " + name + " to " + target_class + " removed");
         }
     }
 
@@ -364,15 +403,10 @@ public class UML_class_diagram : MonoBehaviour
                     claz.UIedges.Remove(className);
                     claz.connections.Remove(className);
                 }
-            }
-            Debug.Log("Class " + className + " removed");                        
+            }                       
         }
     }
-
-    internal void BackToClassDiagram()
-    {
-        
-    }
+    
 
     public void redrawGraph()
     {

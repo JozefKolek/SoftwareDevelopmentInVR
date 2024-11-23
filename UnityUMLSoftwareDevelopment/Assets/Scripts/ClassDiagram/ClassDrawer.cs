@@ -55,7 +55,7 @@ public class ClassDrawer : MonoBehaviour
             GameObject methodObj = Instantiate(methodPrefab, Vector3.zero, Quaternion.identity, container.transform);
             TextMeshProUGUI textComponent = methodObj.GetComponentInChildren<TextMeshProUGUI>();
             textComponent.GetComponent<TMP_Text>().text = method;
-            textComponent.GetComponent<Button>().onClick.AddListener(() => displayActivityDiagram(method));
+            textComponent.GetComponent<Button>().onClick.AddListener(() => displayActivityDiagram(method,classObj));
             GameObject removemethodButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
             removemethodButton.GetComponent<Image>().color = Color.cyan;
             TextMeshProUGUI removemethodButtonText = removemethodButton.GetComponentInChildren<TextMeshProUGUI>();
@@ -167,9 +167,10 @@ public class ClassDrawer : MonoBehaviour
         umlManager.RemoveClass(className);
     }
 
-    private void displayActivityDiagram(string method)
+    private void displayActivityDiagram(string method,Class_object classObj)
     {
         canvasObj.SetActive(false);
-        activity_Diagram.drawDiagram(method);
+        activity_Diagram.initialise();
+        activity_Diagram.drawDiagram(method,classObj);
     }
 }

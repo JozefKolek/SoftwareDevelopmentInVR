@@ -27,17 +27,20 @@ public class UML_activity_diagram : MonoBehaviour
     private GeometryGraph graph;
     private LayoutAlgorithmSettings settings;
     private Transform units;
-    
-    public Dictionary<string, List<string>> gruf = new Dictionary<string, List<string>>();
-    public Dictionary<string, GameObject> actionNodes = new Dictionary<string, GameObject>();
-    public Dictionary<string, Node> MsaglActionNodes = new Dictionary<string, Node>();
-    public Dictionary<string, GameObject> actionEdges = new Dictionary<string, GameObject>();
+
+    public Dictionary<int, Dictionary<int,string>> gruf = new Dictionary<int, Dictionary<int, string>>();
+    public Dictionary<int, GameObject> actionNodes = new Dictionary<int, GameObject>();
+    public Dictionary<int, Node> MsaglActionNodes = new Dictionary<int, Node>();
+    public Dictionary<string,  GameObject> actionEdges = new Dictionary<string, GameObject>();
     public Dictionary<string, Edge> MsaglActionEdges = new Dictionary<string, Edge>();
-    
+    string method = "";
+    Class_object clasa = new Class_object("");
+    public UML_class_diagram class_Diagram;
+
     public float factor = 0.2f;
 
-    void Start()
-    {        
+    public void initialise()
+    {
         // Initialize geometry graph and layout settings
         graph = new GeometryGraph();
         settings = new SugiyamaLayoutSettings
@@ -57,16 +60,21 @@ public class UML_activity_diagram : MonoBehaviour
         canvasObj.SetActive(true);
     }
 
-    public void drawDiagram(string method)
+    public void drawDiagram(string method, Class_object clasa)
     {
-        canvasObj.SetActive(true);        
-        gruf.Add("start", new List<string> { "Adam"});
-        gruf.Add("Adam", new List<string> { "Zuza","Dona"});
-        gruf.Add("Zuza", new List<string> {"end"});
-        gruf.Add("Dona", new List<string> {"Micka"});
-        gruf.Add("Micka", new List<string> {"Adam","Muska"});
-        gruf.Add("Muska", new List<string> {"MikiMouse"});
-        gruf.Add("MikiMouse", new List<string> {"end"});
+        this.clasa = clasa;
+        this.method = method;
+        canvasObj.SetActive(true);
+        gruf = new Dictionary<int, Dictionary<int, string>>();
+        foreach (var comand in clasa.commandEdges) { Debug.Log(comand.Key); }
+        foreach (var comand in clasa.commandEdges[method])
+        {
+            gruf.Add(comand.Key, new Dictionary<int, string>());
+            foreach (KeyValuePair<int,string> to in comand.Value)
+            {
+                gruf[comand.Key].Add(to.Key, to.Value);
+            }
+        }
 
         addClassPopUP = Instantiate(addClassPrefab, canvasObj.transform);
         addClassPopUP.SetActive(false);
@@ -93,10 +101,10 @@ public class UML_activity_diagram : MonoBehaviour
         closeClassForm.localPosition = new Vector3(-275, 140, 0);
         closeClassForm.sizeDelta = new Vector2(150, 60);
         CloseButton.GetComponentInChildren<TextMeshProUGUI>().text = "Close activity";
-        
-        foreach (string name in gruf.Keys)
+
+        foreach (int name in gruf.Keys)
         {
-            GameObject node = actionNode.DrawAction(name);
+            GameObject node = actionNode.DrawAction(clasa.commandKeys[method][name],name);
             actionNodes.Add(name, node);
 
             DraggableUI draggableUI = node.GetComponent<DraggableUI>();
@@ -113,71 +121,51 @@ public class UML_activity_diagram : MonoBehaviour
             // Set the initial center based on Unity's anchored position
             Vector2 anchoredPosition = rectTransform.anchoredPosition;
             var initialCenter = new Microsoft.Msagl.Core.Geometry.Point(anchoredPosition.x, anchoredPosition.y);
-            Debug.Log(width + " " + height + " " + anchoredPosition.x + " " + anchoredPosition.y + " " + name);            
-            //Node msaglNode = new Node(CurveFactory.CreateRectangle(width, height, initialCenter));
-            //msaglNode.UserData = node;
+            Node msaglNode = new Node(CurveFactory.CreateRectangle(width, height, initialCenter));
+            msaglNode.UserData = node;
 
-            //if (msaglNode != null)
-            //{
-            //    graph.Nodes.Add(msaglNode);
-            //}
-            //MsaglActionNodes.Add(name, msaglNode);
+            if (msaglNode != null)
+            {
+                graph.Nodes.Add(msaglNode);
+            }
+            MsaglActionNodes.Add(name, msaglNode);
+            graph.Nodes.Add(msaglNode);
 
         }
         // Adjust panel layout (spacing out panels)
         PositionPanels();
 
-        foreach (KeyValuePair<string,List<string>> actionNode in gruf)
+        foreach(var from in gruf)
         {
-            // Draw connections to related classes
-            foreach (string target in actionNode.Value)
+            foreach (var to in from.Value)
             {                
-                if (actionNodes.ContainsKey(target) && actionNodes[target]!=null)
-                {
-                    DrawConnectionLine(actionNodes[actionNode.Key].transform, actionNodes[target].transform, actionNode.Key,target);
-                    //Edge msaglHrana = new Edge(MsaglActionNodes[actionNode.Key],MsaglActionNodes[target]);
-                    //MsaglActionEdges.Add(actionNode.Key + " " + target, msaglHrana);
-                }
+                DrawConnectionLine(actionNodes[from.Key].transform, actionNodes[to.Key].transform, from.Key, to.Key);
+                Edge msaglHrana = new Edge(MsaglActionNodes[from.Key], MsaglActionNodes[to.Key]);
+                MsaglActionEdges.Add(from.Key + " " + to.Key, msaglHrana);
+                graph.Edges.Add(msaglHrana);
             }
         }
 
-        foreach(var spojenia in actionEdges.Keys)
+        LayoutHelpers.CalculateLayout(graph, settings, null);
+        float canvasWidth = canvasObj.GetComponent<RectTransform>().rect.width / 2;
+        float canvasHeight = canvasObj.GetComponent<RectTransform>().rect.height / 2;
+
+        foreach (KeyValuePair<int, Node> kvp in MsaglActionNodes)
         {
-            Debug.Log("spoje " + spojenia);
+            Node msaglNode = kvp.Value;
+
+            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor, (float)msaglNode.Center.Y * factor);
+
+            // Clamp the position to keep within canvas bounds
+            newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth + 150, canvasWidth - 150);
+            newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight + 150, canvasHeight - 150);
+
+            RectTransform rectTransform = actionNodes[kvp.Key].GetComponent<RectTransform>();
+            rectTransform.anchoredPosition = newPosition;
         }
-        //LayoutHelpers.CalculateLayout(graph, settings, null);
-        //float maxX = canvasObj.GetComponent<RectTransform>().rect.width / 2;
-        //float maxY = canvasObj.GetComponent<RectTransform>().rect.height / 2;
-
-        //foreach (KeyValuePair<string,Node> kvp in MsaglActionNodes)
-        //{
-        //    Node msaglNode = kvp.Value;
-
-        //    Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor, (float)msaglNode.Center.Y * factor);
-
-        //    RectTransform rectTransform = actionNodes[kvp.Key].GetComponent<RectTransform>();
-        //    rectTransform.anchoredPosition = newPosition;
-        //}
-    }    
-
-    internal void removeActionClass(string name)
-    {
-        List<string> to_remove = new List<string>();
-        foreach(KeyValuePair<string,GameObject> hrana in actionEdges)
-        {
-            string[] spoj = hrana.Key.Split(" ");
-            if (spoj[0].Equals(name) || spoj[1].Equals(name))
-            {
-                Destroy(hrana.Value);
-                to_remove.Add(hrana.Key);
-            }
-        }
-        foreach(string hrana in to_remove) { actionEdges.Remove(hrana); }
-        if (gruf.ContainsKey(name)) { gruf.Remove(name); }
-        if (actionNodes.ContainsKey(name)) { actionNodes.Remove(name); }
     }
 
-    private void DrawConnectionLine(Transform startTransform, Transform endTransform, string from, string to)
+    private void DrawConnectionLine(Transform startTransform, Transform endTransform, int from, int to)
     {
         // Instantiate the line prefab
         GameObject lineInstance = Instantiate(linePrefab, canvasObj.transform);
@@ -200,13 +188,12 @@ public class UML_activity_diagram : MonoBehaviour
         float offsetY = -150f; // Adjust spacing between panels vertically
         int index = 0;
 
-        foreach (KeyValuePair<string,GameObject> node in actionNodes)
+        foreach (KeyValuePair<int, GameObject> node in actionNodes)
         {
             if (node.Value != null)
             {
                 RectTransform rectTransform = node.Value.GetComponent<RectTransform>();
                 rectTransform.anchoredPosition = new Vector2(offsetX * (index % 5), offsetY * (index / 5));
-                Debug.Log($"{node.Key} position: {rectTransform.anchoredPosition}");
                 index++;
             }
         }
@@ -214,36 +201,39 @@ public class UML_activity_diagram : MonoBehaviour
 
     public void UpdateLines()
     {
-        foreach (KeyValuePair<string,GameObject> hrana in actionEdges)
-        {            
+        foreach (KeyValuePair<string, GameObject> hrana in actionEdges)
+        {
             var lineUpdater = hrana.Value.GetComponent<LineUpdater>();
             if (lineUpdater != null)
             {
                 lineUpdater.UpdateLinePositions();
-            }         
+            }
         }
-    }
-
-    public void redrawGraph()
-    {
-        foreach (var vrchol in actionNodes.Keys){Destroy(actionNodes[vrchol]);}
-        foreach (var hrana in actionEdges.Keys) { Destroy(actionEdges[hrana]);}
-        actionNodes.Clear();
-        actionEdges.Clear();
-        gruf.Clear();
-    }
+    }   
 
     private void CloseActivityDiagram()
     {
         canvasObj.SetActive(false);
         gruf.Clear();
-        foreach(KeyValuePair<string,GameObject> vrchol in actionNodes) { Destroy(vrchol.Value); }
-        foreach(KeyValuePair<string,GameObject> hrana in actionEdges) { Destroy(hrana.Value); }
+        foreach (KeyValuePair<int, GameObject> vrchol in actionNodes) { Destroy(vrchol.Value); }
+        foreach (KeyValuePair<string, GameObject> hrana in actionEdges) { Destroy(hrana.Value); }
         actionEdges.Clear();
         actionNodes.Clear();
         MsaglActionEdges.Clear();
         MsaglActionNodes.Clear();
-        ClassCanvasObj.SetActive(true);        
+        ClassCanvasObj.SetActive(true);
+    }
+
+    private void RedrawDiagram()
+    {
+        gruf.Clear();
+        foreach (KeyValuePair<int, GameObject> vrchol in actionNodes) { Destroy(vrchol.Value); }
+        foreach (KeyValuePair<string, GameObject> hrana in actionEdges) { Destroy(hrana.Value); }
+        actionEdges.Clear();
+        actionNodes.Clear();
+        MsaglActionEdges.Clear();
+        MsaglActionNodes.Clear();
+        drawDiagram(method, clasa);
     }
 
     private void AddClass()
@@ -256,25 +246,30 @@ public class UML_activity_diagram : MonoBehaviour
     private void AddClassToGraph()
     {
         addClassPopUP.SetActive(false);
-        string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;
-        actionNodes.Add(claz_name, actionNode.DrawAction(claz_name));
-        gruf.Add(claz_name, new List<string>());
-        DraggableUI draggableUI = actionNodes[claz_name].GetComponent<DraggableUI>();
-        if (draggableUI != null)
-        {
-            draggableUI.activity_Diagram = this; // Set the UML diagram reference
-        }
+        string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;        
+        int index= class_Diagram.AddActivityNode(claz_name,method,clasa.name);
+        RedrawDiagram();        
     }
 
-    internal void addEdge(string name)
+    internal void addEdge(int key)
     {
         addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to action node";
-
         List<string> connections = new List<string> { "generalization", "aggergation" };
         List<string> classes = new List<string>();
-        foreach(var vrchol in gruf.Keys) { classes.Add(vrchol); }
-        foreach (var vrchol in gruf[name]) { classes.Remove(vrchol); }
-        classes.Remove(name);                       
+        foreach (var vrchol in clasa.commandKeys[method])
+        {
+            if (key != vrchol.Key && !gruf[key].ContainsKey(vrchol.Key))
+            {
+                classes.Add(vrchol.Key + " " + vrchol.Value);
+            }
+        }
+        foreach (var vrchol in gruf)
+        {
+            if (gruf[vrchol.Key].ContainsKey(key))
+            {
+                classes.Remove(vrchol.Key + " " + clasa.commandKeys[method][vrchol.Key]);
+            }
+        }
 
         TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
         dropdowns[0].ClearOptions();
@@ -283,56 +278,80 @@ public class UML_activity_diagram : MonoBehaviour
         dropdowns[1].AddOptions(connections);
 
         addEdgePopUp.SetActive(true);
-        addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(name));
+        addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(key));
+
     }
 
-    private void AddEdgeToGraph(string name)
+
+    private void AddEdgeToGraph(int key)
     {
-        addEdgePopUp.SetActive(false);        
-        if (actionNodes.ContainsKey(name))
+        addEdgePopUp.SetActive(false);
+        if (actionNodes.ContainsKey(key))
         {
             TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
             string targetClass = dropdowns[0].options[dropdowns[0].value].text;
             string connection = dropdowns[1].options[dropdowns[1].value].text;
-            if (actionNodes.ContainsKey(targetClass)){
-                DrawConnectionLine(actionNodes[name].transform, actionNodes[targetClass].transform, name, targetClass);
+            int targetIndex = Int32.Parse(targetClass.Split(" ")[0]);
+            if (actionNodes.ContainsKey(targetIndex))
+            {                
+                class_Diagram.AddActionEdge(key,targetIndex,method,connection,clasa.name);
+                RedrawDiagram();
             }
         }
     }
+    internal void removeActionClass(int key)
+    {
+        List<string> to_remove = new List<string>();
+        foreach (KeyValuePair<string, GameObject> hrana in actionEdges)
+        {
+            string[] spoj = hrana.Key.Split(" ");
+            if (Int32.Parse(spoj[0]) == key || Int32.Parse(spoj[1]) == key)
+            {
+                Destroy(hrana.Value);
+                to_remove.Add(hrana.Key);
+            }
+        }
+        foreach (string hrana in to_remove) { actionEdges.Remove(hrana); }
+        if (gruf.ContainsKey(key)) { gruf.Remove(key); }
+        if (actionNodes.ContainsKey(key)) { actionNodes.Remove(key); }
+        class_Diagram.removeActionClass(method, key, clasa.name);
+        //RedrawDiagram();
+    }
 
-    internal void removeEdge(string name)
-    {        
-        if (gruf.ContainsKey(name))
+    internal void removeEdge(int key)
+    {
+        if (gruf.ContainsKey(key))
         {
             List<string> target_classes = new List<string>();
-            foreach (var target in gruf[name]) { target_classes.Add(target); }
+            foreach (var target in gruf[key]) { target_classes.Add(target.Key + " " + clasa.commandKeys[method][target.Key]); }
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
             targetClassesMenu.ClearOptions();
             targetClassesMenu.AddOptions(target_classes);
             removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge";
-            removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(name));
+            removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(key));
             removeEdgePopUp.SetActive(true);
         }
         removeEdgePopUp.SetActive(true);
     }
 
-    private void RemoveEdgeFromGraph(string name)
+    private void RemoveEdgeFromGraph(int key)
     {
-        removeEdgePopUp.SetActive(false);        
-        if (gruf.ContainsKey(name))
+        removeEdgePopUp.SetActive(false);
+        if (gruf.ContainsKey(key))
         {
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
             string target_class = targetClassesMenu.options[targetClassesMenu.value].text;
-            if (gruf.ContainsKey(name))
-            {                
-                gruf[name].Remove(target_class);
-            }
-            if (actionEdges.ContainsKey(name + " " + target_class))
+            int targetIndex = Int32.Parse(target_class.Split(" ")[0]);
+            if (gruf.ContainsKey(key))
             {
-                Destroy(actionEdges[name + " " + target_class]);
-                actionEdges.Remove(name + " " + target_class);
+                gruf[key].Remove(targetIndex);
             }
-            Debug.Log("Edge from " + name + " to " + target_class + " removed");
+            if (actionEdges.ContainsKey(key + " " + targetIndex))
+            {
+                Destroy(actionEdges[key + " " + targetIndex]);
+                actionEdges.Remove(key + " " + targetIndex);
+                class_Diagram.removeActionEdge(key, targetIndex, method,clasa.name);
+            }
         }
     }
 }

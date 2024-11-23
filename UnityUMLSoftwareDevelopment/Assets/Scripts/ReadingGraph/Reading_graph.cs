@@ -12,6 +12,7 @@ public class Reading_graph
 {
     public string path = "";
     public CompilationUnitSyntax root;
+    public int highestKey = 0;
 
     public Reading_graph(string path)
     {
@@ -46,6 +47,7 @@ public class Reading_graph
 
         // Convert data to JSON format
         string jsonFormat = JsonConvert.SerializeObject(result, Formatting.Indented);
+        Debug.Log(jsonFormat.ToString());
 
         // Deserialize the JSON into a list of dictionaries
         var data = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonFormat);                
@@ -56,14 +58,12 @@ public class Reading_graph
             // Initialize the Class_object
             string className = claz["Name"].ToString();
             Class_object class_Object = new Class_object(className);
-            Debug.Log(claz);
             // Access Attributes if they exist
             if (claz.ContainsKey("Attributes"))
             {
                 var attributes = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Attributes"],Formatting.Indented));
                 if (attributes != null && attributes.Count > 0)
                 {
-                    Debug.Log($"Attributes found for class: {className}");
                     foreach (var attribute in attributes)
                     {
                         string name = attribute.ContainsKey("Name") ? attribute["Name"].ToString() : "Unknown";
@@ -89,7 +89,6 @@ public class Reading_graph
                 var properties = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Properties"], Formatting.Indented));                 
                 if (properties != null && properties.Count > 0)
                 {
-                    Debug.Log($"Properties found for class: {className}");
                     foreach (var property in properties)
                     {
                         string name = property.ContainsKey("Name") ? property["Name"].ToString() : "Unknown";
@@ -117,7 +116,6 @@ public class Reading_graph
                 var constructors = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Constructors"], Formatting.Indented));
                 if (constructors != null && constructors.Count > 0)
                 {
-                    Debug.Log($"Constructors found for class: {className}");
                     foreach (var constructor in constructors)
                     {
                         string constructorName = constructor.ContainsKey("Name") ? constructor["Name"].ToString() : "Unknown";
@@ -142,13 +140,21 @@ public class Reading_graph
                         }
                         forAdd += constructorName + " )";
                         class_Object.methods.Add(forAdd);
+                        class_Object.methodCommands.Add(forAdd, new List<string>());
+                        class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
+                        class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
                         if (constructor.ContainsKey("Commands")){
-                            var commands = JsonConvert.DeserializeObject<List<string>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
+                            var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
                             if (commands != null && commands.Count > 0)
                             {
-                                List<string> commandsList = new List<string>();
-                                foreach(var command in commands) { commandsList.Add(command); }
-                                class_Object.methodCommands.Add(forAdd, commandsList);
+                                class_Object.commandKeys[forAdd].Add(1, "start");                                
+                                class_Object.commandKeys[forAdd].Add(0, "end");
+
+                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+                                
+                                highestKey = 1;
+                                parseCommands(commands, class_Object, forAdd);
                             }
                         }
                     }
@@ -165,7 +171,6 @@ public class Reading_graph
                 var methods = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Methods"], Formatting.Indented));
                 if (methods!=null && methods.Count > 0)
                 {
-                    Debug.Log($"Methods found for class: {className}");
                     foreach(var method in methods)
                     {
                         string visibility = method.ContainsKey("Visibility") ? method["Visibility"].ToString() : "Unknown";
@@ -193,15 +198,22 @@ public class Reading_graph
                         }
                         forAdd += ")";
                         class_Object.methods.Add(forAdd);
+                        class_Object.methodCommands.Add(forAdd, new List<string>());
+                        class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
+                        class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
                         //include commands
                         if (method.ContainsKey("Commands"))
                         {
-                            var commands = JsonConvert.DeserializeObject<List<string>>(JsonConvert.SerializeObject(method["Commands"], Formatting.Indented));
+                            var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(method["Commands"], Formatting.Indented));
                             if (commands != null && commands.Count > 0)
-                            {
-                                List<string> commandsList = new List<string>();
-                                foreach (var command in commands) { commandsList.Add(command); }
-                                class_Object.methodCommands.Add(forAdd, commandsList);
+                            {                               
+                                class_Object.commandKeys[forAdd].Add(1, "start");
+                                class_Object.commandKeys[forAdd].Add(0, "end");
+
+                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+                                highestKey = 1;
+                                parseCommands(commands, class_Object, forAdd);
                             }
                         }
                     }
@@ -245,9 +257,7 @@ public class Reading_graph
                         foreach (string meno in classDictionary.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }                            
                         if (isConnection && !classDictionary[className].connections.ContainsKey(targetclassName))
                         {
-                            Debug.Log("Odhalil som " + className + " " + targetclassName);
                             if (!defaultValue.Equals("None")){
-                                Debug.Log("Mam set value juhu " + className + " " + targetclassName);
                                 if (defaultValue.Contains("new"))
                                 {
                                     classDictionary[className].connections.Add(targetclassName, "Composition");
@@ -259,7 +269,6 @@ public class Reading_graph
                             {
                                 //We didn't find initialisation so must search in class method commands
                                 bool hasConnection = false;
-                                Debug.Log("Nemam set value ojoj " + className + " " + targetclassName);
                                 foreach (KeyValuePair<string, List<string>> method in classDictionary[className].methodCommands)
                                 {
                                     foreach (string command in method.Value)
@@ -267,11 +276,9 @@ public class Reading_graph
                                         string[] lines = command.Split("\n");                                        
                                         foreach (string line in lines)
                                         {
-                                            Debug.Log("riesim comand " + line); 
                                             //nasiel som premennu typu targetClass ktorej chybala inicializacia
                                             if (line.Contains(name))
                                             {
-                                                Debug.Log("Bude dodatocne spojenie " + className + " s " + targetclassName);
                                                 //Ma inicializaciu
                                                 if (line.Contains("="))
                                                 {
@@ -313,10 +320,8 @@ public class Reading_graph
                         foreach (string meno in classDictionary.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }
                         if (isConnection && !classDictionary[className].connections.ContainsKey(targetclassName))
                         {
-                            Debug.Log("Odhalil som " + className + " " + targetclassName);
                             if (!defaultValue.Equals("None"))
                             {
-                                Debug.Log("Mam set value juhu " + className + " " + targetclassName);
                                 if (defaultValue.Contains("new"))
                                 {
                                     classDictionary[className].connections.Add(targetclassName, "Composition");
@@ -329,7 +334,6 @@ public class Reading_graph
                             else
                             {
                                 bool hasConnection = false;
-                                Debug.Log("Nemam set value ojoj " + className + " " + targetclassName);
                                 foreach (KeyValuePair<string, List<string>> method in classDictionary[className].methodCommands)
                                 {
                                     foreach (string command in method.Value)
@@ -337,10 +341,8 @@ public class Reading_graph
                                         string[] lines = command.Split("\n");
                                         foreach (string line in lines)
                                         {
-                                            Debug.Log("riesim comand " + line);
                                             if (line.Contains(name))
                                             {
-                                                Debug.Log("Bude dodatocne spojenie " + className + " s " + targetclassName);
                                                 if (line.Contains("="))
                                                 {
                                                     hasConnection = true;
@@ -397,6 +399,134 @@ public class Reading_graph
         return classList;
     }
 
+    private void parseCommands(List<Dictionary<string, object>> commands, Class_object class_Object, string forAdd)
+    {
+        foreach (var command in commands)
+        {
+            string typeOfComand = command.ContainsKey("Type") ? command["Type"].ToString() : "Unknown";
+            if (typeOfComand.Equals("ForLoop"))
+            {
+                string initialisation = command.ContainsKey("Initialization") ? command["Initialization"].ToString() : "Unknown";
+                string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
+                List<string> incrementations = new List<string>();
+                int conditionKey = highestKey  + 2;
+                if (command.ContainsKey("Incrementors") && command["Incrementors"] is IEnumerable<object> incrementors)
+                {
+                    incrementations = incrementors.Select(x => x.ToString()).ToList();
+                }
+                if (!initialisation.Equals("Unknown") && !condition.Equals("Unknown") && initialisation.Length>0 && condition.Length > 0)
+                {
+                    class_Object.methodCommands[forAdd].Add(initialisation);
+                    
+                    //add condition and to edge
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, initialisation);
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
+                    
+                    class_Object.methodCommands[forAdd].Add(condition);
+                    
+                    //add intialisation to edge
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, condition);
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");                    
+                }                
+                if (command.ContainsKey("Body"))
+                {
+                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                    if (body != null && body.Count > 0)
+                    {
+                        parseCommands(body, class_Object, forAdd);                        
+                    }
+                }
+                if(incrementations.Count > 0)
+                {
+                    class_Object.methodCommands[forAdd].Add(string.Join(" && ", incrementations));
+
+                    //add incremantation to edge and connect it with condition edge
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, string.Join(" && ", incrementations));
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey - 1].Add(highestKey, "normal");
+                    class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+                }                    
+
+            }
+            else if (typeOfComand.Equals("WhileLoop"))
+            {
+                string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
+                int conditionKey = highestKey+1;
+                if (!condition.Equals("Unknown") && condition.Length > 0)
+                {
+                    class_Object.methodCommands[forAdd].Add(condition);
+
+                    //add condition to edges
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, condition);
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
+                }
+                if (command.ContainsKey("Body"))
+                {
+                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                    if (body != null && body.Count > 0)
+                    {
+                        parseCommands(body, class_Object, forAdd);
+                    }
+                }
+                if (highestKey != conditionKey)
+                {
+                   class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+                }
+            }
+            else if (typeOfComand.Equals("IfCondition"))
+            {
+                string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
+                int conditionKey = highestKey + 1;
+                highestKey++;
+                class_Object.commandKeys[forAdd].Add(highestKey, condition);
+                class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                class_Object.commandEdges[forAdd][highestKey - 1].Add(highestKey, "normal");
+                if (!condition.Equals("Unknown") && condition.Length>0) 
+                {
+                    class_Object.methodCommands[forAdd].Add(condition);
+                }                
+                if (command.ContainsKey("Body"))
+                {
+                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                    if (body != null && body.Count > 0)
+                    {
+                        parseCommands(body, class_Object, forAdd);
+                    }
+                }
+                if (command.ContainsKey("ElseBody"))
+                {
+                    var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
+                    if (elseBody != null && elseBody.Count > 0)
+                    {
+                        parseCommands(elseBody, class_Object, forAdd);
+                    }
+                }
+            }
+            else if (typeOfComand.Equals("Statement"))
+            {
+                string line = command.ContainsKey("Code") ? command["Code"].ToString() : "Unknown";
+                if (!line.Equals("Unknown") && line.Length > 0)
+                {
+                    class_Object.methodCommands[forAdd].Add(line);
+
+                    //add command to edges
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, line);
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
+                }
+            }
+
+        }
+    }
+
     private static object ExtractClassOrInterface(TypeDeclarationSyntax declaration, string type)
     {
         return new
@@ -449,11 +579,69 @@ public class Reading_graph
             Visibility = GetVisibility(method.Modifiers),
             ReturnType = method.ReturnType.ToString(),
             Parameters = method.ParameterList.Parameters.Select(p => new { p.Identifier.Text, Type = p.Type.ToString() }).ToList(),
-            Commands = method.Body != null ? method.Body.Statements.Select(s => s.ToString()).ToList() : new List<string>(),
+            Commands = ExtractCommands(method.Body), // Extract detailed commands
             IsAbstract = method.Modifiers.Any(SyntaxKind.AbstractKeyword),  // Check if method is abstract
             IsVirtual = method.Modifiers.Any(SyntaxKind.VirtualKeyword),  // Check if method is virtual
             IsOverride = method.Modifiers.Any(SyntaxKind.OverrideKeyword)  // Check if method is override
         };
+    }
+
+    private static List<object> ExtractCommands(SyntaxNode node)
+    {
+        var commands = new List<object>();
+
+        if (node is BlockSyntax block)
+        {
+            // Iterate through all statements in a block
+            foreach (var statement in block.Statements)
+            {
+                commands.AddRange(ExtractCommands(statement));
+            }
+        }
+        else if (node is ForStatementSyntax forStatement)
+        {
+            // Handle a for-loop
+            commands.Add(new
+            {
+                Type = "ForLoop",
+                Initialization = forStatement.Declaration?.ToString(),
+                Condition = forStatement.Condition?.ToString(),
+                Incrementors = forStatement.Incrementors.Select(i => i.ToString()).ToList(),
+                Body = ExtractCommands(forStatement.Statement)
+            });
+        }
+        else if (node is IfStatementSyntax ifStatement)
+        {
+            // Handle an if-condition
+            commands.Add(new
+            {
+                Type = "IfCondition",
+                Condition = ifStatement.Condition.ToString(),
+                Body = ExtractCommands(ifStatement.Statement),
+                ElseBody = ifStatement.Else != null ? ExtractCommands(ifStatement.Else.Statement) : null
+            });
+        }
+        else if (node is WhileStatementSyntax whileStatement)
+        {
+            // Handle a while-loop
+            commands.Add(new
+            {
+                Type = "WhileLoop",
+                Condition = whileStatement.Condition.ToString(),
+                Body = ExtractCommands(whileStatement.Statement)
+            });
+        }
+        else
+        {
+            // Default case: Treat as a simple statement
+            commands.Add(new
+            {
+                Type = "Statement",
+                Code = node.ToString()
+            });
+        }
+
+        return commands;
     }
 
     private static object ExtractConstructor(ConstructorDeclarationSyntax constructor)
@@ -463,7 +651,7 @@ public class Reading_graph
             Name = constructor.Identifier.Text,
             Visibility = GetVisibility(constructor.Modifiers),
             Parameters = constructor.ParameterList.Parameters.Select(p => new { p.Identifier.Text, Type = p.Type.ToString() }).ToList(),
-            Commands = constructor.Body != null ? constructor.Body.Statements.Select(s => s.ToString()).ToList() : new List<string>(),
+            Commands = ExtractCommands(constructor.Body), // Extract detailed commands
             IsAbstract = constructor.Modifiers.Any(SyntaxKind.AbstractKeyword),  // Check if constructor is abstract
             IsVirtual = constructor.Modifiers.Any(SyntaxKind.VirtualKeyword)  // Check if constructor is virtual
         };
