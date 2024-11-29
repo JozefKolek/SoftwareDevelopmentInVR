@@ -76,6 +76,16 @@ public class UML_class_diagram : MonoBehaviour
         addClassForm.sizeDelta = new Vector2(150, 60);
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
+        GameObject GenerateCodeButton = Instantiate(buttonPrefab, canvasObj.transform);
+        GenerateCode generator = new GenerateCode(classObjects);
+        GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generator.generateCode());
+        GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
+
+        RectTransform GenerateCodeForm = GenerateCodeButton.GetComponent<RectTransform>();
+        GenerateCodeForm.localPosition = new Vector3(-275, 150, 0);
+        addClassForm.sizeDelta = new Vector2(150, 60);
+        GenerateCodeButton.GetComponentInChildren<TextMeshProUGUI>().text = "Generate code";
+
         // Create each class panel and set up initial positions
         foreach (Class_object classObj in classObjects)
         {
@@ -274,6 +284,15 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.methods.Add(method);
+            classObj.methodCommands.Add(method, new List<string>());
+            classObj.commandKeys.Add(method, new Dictionary<int, string>());
+            classObj.commandEdges.Add(method, new Dictionary<int, Dictionary<int, string>>());
+
+            classObj.commandKeys[method].Add(1, "start");
+            classObj.commandKeys[method].Add(0, "end");
+
+            classObj.commandEdges[method].Add(1, new Dictionary<int, string>());
+            classObj.commandEdges[method].Add(0, new Dictionary<int, string>());
             redrawGraph();
         }
     }
@@ -312,7 +331,10 @@ public class UML_class_diagram : MonoBehaviour
         Class_object classObj = classObjects.Find(obj => obj.name == className);
         if (classObj != null)
         {
-            classObj.methods.Remove(method);            
+            classObj.methods.Remove(method);
+            classObj.methodCommands.Remove(method);
+            classObj.commandKeys.Remove(method);
+            classObj.commandEdges.Remove(method);
         }        
     }
 

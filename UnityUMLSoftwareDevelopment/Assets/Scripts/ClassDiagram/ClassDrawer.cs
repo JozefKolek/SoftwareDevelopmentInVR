@@ -10,7 +10,7 @@ public class ClassDrawer : MonoBehaviour
     public GameObject namePrefab;           // Prefab for displaying the class name
     public GameObject attributePrefab;      // Prefab for displaying each attribute
     public GameObject methodPrefab;         // Prefab for displaying each method
-    public GameObject canvasObj;   
+    public GameObject canvasObj;
     public GameObject buttonPrefab;
     public GameObject addMetOrAt;
     public GameObject atOrMetContainerPrefab;
@@ -21,11 +21,11 @@ public class ClassDrawer : MonoBehaviour
 
     // Creates a panel for a single Class_object instance
     public GameObject CreateClassPanel(Class_object classObj)
-    {        
+    {
         GameObject mainPanel = Instantiate(mainPanelPrefab, Vector3.zero, Quaternion.identity, canvasObj.transform);
         GameObject addMethodOrClass = Instantiate(addMetOrAt, canvasObj.transform);
-        
-        addMethodOrClass.SetActive(false);        
+
+        addMethodOrClass.SetActive(false);
 
         mainPanel.name = classObj.name;
 
@@ -36,7 +36,7 @@ public class ClassDrawer : MonoBehaviour
         // Attributes section
         foreach (string attribute in classObj.attributes)
         {
-            GameObject container = Instantiate(atOrMetContainerPrefab,Vector3.zero,Quaternion.identity, mainPanel.transform);
+            GameObject container = Instantiate(atOrMetContainerPrefab, Vector3.zero, Quaternion.identity, mainPanel.transform);
             GameObject attributeObj = Instantiate(attributePrefab, Vector3.zero, Quaternion.identity, container.transform);
             TextMeshProUGUI textComponent = attributeObj.GetComponentInChildren<TextMeshProUGUI>();
             textComponent.GetComponent<TMP_Text>().text = attribute;
@@ -45,7 +45,7 @@ public class ClassDrawer : MonoBehaviour
             TextMeshProUGUI removeAttributeButtonText = removeAttributeButton.GetComponentInChildren<TextMeshProUGUI>();
             removeAttributeButtonText.GetComponent<TMP_Text>().text = "-";
             removeAttributeButtonText.fontSize = 32;
-            removeAttributeButton.GetComponent<Button>().onClick.AddListener(() => RemoveAttribute(container,attribute,classObj.name));
+            removeAttributeButton.GetComponent<Button>().onClick.AddListener(() => RemoveAttribute(container, attribute, classObj.name));
         }
 
         // Methods section
@@ -55,13 +55,13 @@ public class ClassDrawer : MonoBehaviour
             GameObject methodObj = Instantiate(methodPrefab, Vector3.zero, Quaternion.identity, container.transform);
             TextMeshProUGUI textComponent = methodObj.GetComponentInChildren<TextMeshProUGUI>();
             textComponent.GetComponent<TMP_Text>().text = method;
-            textComponent.GetComponent<Button>().onClick.AddListener(() => displayActivityDiagram(method,classObj));
+            textComponent.GetComponent<Button>().onClick.AddListener(() => displayActivityDiagram(method, classObj));
             GameObject removemethodButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
             removemethodButton.GetComponent<Image>().color = Color.cyan;
             TextMeshProUGUI removemethodButtonText = removemethodButton.GetComponentInChildren<TextMeshProUGUI>();
             removemethodButtonText.GetComponent<TMP_Text>().text = "-";
             removemethodButtonText.fontSize = 32;
-            removemethodButton.GetComponent<Button>().onClick.AddListener(() => RemoveMethod(container,method,classObj.name));
+            removemethodButton.GetComponent<Button>().onClick.AddListener(() => RemoveMethod(container, method, classObj.name));
         }
 
         GameObject addContainer = Instantiate(atOrMetContainerPrefab, mainPanel.transform);
@@ -72,9 +72,9 @@ public class ClassDrawer : MonoBehaviour
         TextMeshProUGUI addAttributeText = addAttribute.GetComponentInChildren<TextMeshProUGUI>();
         addAttributeText.GetComponent<TMP_Text>().text = "Add Attribute";
         addAttributeText.fontSize = 20;
-        addAttribute.GetComponent<Button>().onClick.AddListener(() => AddAttribute(classObj.name,addMethodOrClass));
+        addAttribute.GetComponent<Button>().onClick.AddListener(() => AddAttribute(classObj.name, addMethodOrClass));
 
-        GameObject addMethod = Instantiate(buttonPrefab,addContainer.transform);
+        GameObject addMethod = Instantiate(buttonPrefab, addContainer.transform);
         addMethod.GetComponent<Image>().color = Color.magenta;
         TextMeshProUGUI addMethodText = addMethod.GetComponentInChildren<TextMeshProUGUI>();
         addMethodText.GetComponent<TMP_Text>().text = "Add Method";
@@ -101,7 +101,7 @@ public class ClassDrawer : MonoBehaviour
         removeClassText.GetComponent<TMP_Text>().fontSize = 20;
         removeClassText.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
         removeClassText.GetComponent<TMP_Text>().text = "Remove Class";
-        removeClassButton.GetComponent<Button>().onClick.AddListener(() => RemoveClass(mainPanel,classObj.name));
+        removeClassButton.GetComponent<Button>().onClick.AddListener(() => RemoveClass(mainPanel, classObj.name));
 
         // Set position of the class panel to avoid overlap
         RectTransform rectTransform = mainPanel.GetComponent<RectTransform>();
@@ -116,11 +116,11 @@ public class ClassDrawer : MonoBehaviour
         umlManager.AddEdge(name);
     }
 
-    private void AddMethod(string name,GameObject addMetOrAt)
+    private void AddMethod(string name, GameObject addMetOrAt)
     {
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add method to class";
         addMetOrAt.SetActive(true);
-        addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddMethodToClass(name,addMetOrAt)) ;        
+        addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddMethodToClass(name, addMetOrAt));
     }
 
     private void AddMethodToClass(string name, GameObject addMetOrAt)
@@ -141,7 +141,7 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.SetActive(false);
         string attribute = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
-        umlManager.AddAttribute(attribute.Trim(' '),name);
+        umlManager.AddAttribute(attribute.Trim(' '), name);
     }
 
     private void RemoveAttribute(GameObject attributeObj, string attribute, string name)
@@ -162,15 +162,15 @@ public class ClassDrawer : MonoBehaviour
     }
 
     private void RemoveClass(GameObject Klas, string className)
-    {        
+    {
         Destroy(Klas);
         umlManager.RemoveClass(className);
     }
 
-    private void displayActivityDiagram(string method,Class_object classObj)
+    private void displayActivityDiagram(string method, Class_object classObj)
     {
         canvasObj.SetActive(false);
         activity_Diagram.initialise();
-        activity_Diagram.drawDiagram(method,classObj);
+        activity_Diagram.drawDiagram(method, classObj);
     }
 }

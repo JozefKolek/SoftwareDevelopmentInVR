@@ -13,7 +13,7 @@ public class Reading_graph
     public string path = "";
     public CompilationUnitSyntax root;
     public int highestKey = 0;
-
+    
     public Reading_graph(string path)
     {
         this.path = path;
@@ -143,18 +143,48 @@ public class Reading_graph
                         class_Object.methodCommands.Add(forAdd, new List<string>());
                         class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
                         class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
-                        if (constructor.ContainsKey("Commands")){
+                        Debug.Log("som konstr?");
+                        if (constructor.ContainsKey("Commands")){                            
                             var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
-                            if (commands != null && commands.Count > 0)
-                            {
-                                class_Object.commandKeys[forAdd].Add(1, "start");                                
-                                class_Object.commandKeys[forAdd].Add(0, "end");
 
-                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
-                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
-                                
+                            class_Object.commandKeys[forAdd].Add(1, "start");
+                            class_Object.commandKeys[forAdd].Add(0, "end");
+
+                            class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                            class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+                            if (commands != null && commands.Count > 0)
+                            {                               
                                 highestKey = 1;
+                                class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");
                                 parseCommands(commands, class_Object, forAdd);
+                                //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
+                                Dictionary<int, int> forChange = new Dictionary<int, int>();
+
+                                foreach (var command in class_Object.commandEdges[forAdd])
+                                {
+                                    if (command.Key != 0)
+                                    {
+                                        if (command.Value.Count == 0)
+                                        {
+                                            class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
+                                        }
+                                        else
+                                        {
+                                            foreach (var commandEdge in command.Value)
+                                            {
+                                                if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
+                                                {
+                                                    forChange.Add(command.Key, commandEdge.Key);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                foreach (var remove in forChange)
+                                {
+                                    class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
+                                    class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
+                                }
                             }
                         }
                     }
@@ -205,15 +235,46 @@ public class Reading_graph
                         if (method.ContainsKey("Commands"))
                         {
                             var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(method["Commands"], Formatting.Indented));
-                            if (commands != null && commands.Count > 0)
-                            {                               
-                                class_Object.commandKeys[forAdd].Add(1, "start");
-                                class_Object.commandKeys[forAdd].Add(0, "end");
 
-                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
-                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+                            class_Object.commandKeys[forAdd].Add(1, "start");
+                            class_Object.commandKeys[forAdd].Add(0, "end");
+
+                            class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                            class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+
+                            if (commands != null && commands.Count > 0)
+                            {                                
                                 highestKey = 1;
+                                class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");
                                 parseCommands(commands, class_Object, forAdd);
+                                //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
+                                Dictionary<int, int> forChange = new Dictionary<int, int>();
+
+                                foreach (var command in class_Object.commandEdges[forAdd])
+                                {
+                                    if (command.Key != 0)
+                                    {
+                                        if (command.Value.Count == 0)
+                                        {
+                                            class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
+                                        }
+                                        else
+                                        {
+                                            foreach (var commandEdge in command.Value)
+                                            {
+                                                if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
+                                                {
+                                                    forChange.Add(command.Key, commandEdge.Key);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                foreach (var remove in forChange)
+                                {
+                                    class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
+                                    class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
+                                }
                             }
                         }
                     }
@@ -406,106 +467,161 @@ public class Reading_graph
             string typeOfComand = command.ContainsKey("Type") ? command["Type"].ToString() : "Unknown";
             if (typeOfComand.Equals("ForLoop"))
             {
+                int conditionKey = -1;                
                 string initialisation = command.ContainsKey("Initialization") ? command["Initialization"].ToString() : "Unknown";
                 string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
-                List<string> incrementations = new List<string>();
-                int conditionKey = highestKey  + 2;
-                if (command.ContainsKey("Incrementors") && command["Incrementors"] is IEnumerable<object> incrementors)
+                var incrementors = command.ContainsKey("Incrementors") && command["Incrementors"] is IEnumerable<object> incr
+                    ? incr.Select(x => x.ToString()).ToList()
+                    : new List<string>();
+
+                // Handle initialization
+                if (!initialisation.Equals("Unknown") && initialisation.Length > 0  && !condition.Equals("Unknown") && condition.Length > 0 && incrementors.Count > 0)
                 {
-                    incrementations = incrementors.Select(x => x.ToString()).ToList();
-                }
-                if (!initialisation.Equals("Unknown") && !condition.Equals("Unknown") && initialisation.Length>0 && condition.Length > 0)
-                {
+                    conditionKey = highestKey + 2;
+
                     class_Object.methodCommands[forAdd].Add(initialisation);
-                    
-                    //add condition and to edge
-                    highestKey++;
-                    class_Object.commandKeys[forAdd].Add(highestKey, initialisation);
-                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
-                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
-                    
                     class_Object.methodCommands[forAdd].Add(condition);
-                    
-                    //add intialisation to edge
-                    highestKey++;
+
+                    highestKey += 2;
+                    class_Object.commandKeys[forAdd].Add(highestKey - 1, initialisation);
                     class_Object.commandKeys[forAdd].Add(highestKey, condition);
-                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
-                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");                    
-                }                
-                if (command.ContainsKey("Body"))
-                {
-                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
-                    if (body != null && body.Count > 0)
-                    {
-                        parseCommands(body, class_Object, forAdd);                        
-                    }
-                }
-                if(incrementations.Count > 0)
-                {
-                    class_Object.methodCommands[forAdd].Add(string.Join(" && ", incrementations));
 
-                    //add incremantation to edge and connect it with condition edge
-                    highestKey++;
-                    class_Object.commandKeys[forAdd].Add(highestKey, string.Join(" && ", incrementations));
+                    class_Object.commandEdges[forAdd].Add(highestKey - 1, new Dictionary<int, string>());
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+
                     class_Object.commandEdges[forAdd][highestKey - 1].Add(highestKey, "normal");
-                    class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
-                }                    
+                    class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
 
+                    // Handle body
+                    if (command.ContainsKey("Body"))
+                    {
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        if (body != null && body.Count > 0)
+                        {
+                            parseCommands(body, class_Object, forAdd);
+                        }
+                    }
+                    // Handle incrementors                    
+                    string increase = string.Join(" && ", incrementors);
+
+                    Debug.Log(increase);
+                    class_Object.methodCommands[forAdd].Add(increase);
+
+                    highestKey++;
+                    class_Object.commandKeys[forAdd].Add(highestKey, increase);
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+
+                    //pridam spoj prec z foru ked podmienka nie je splnena
+                    class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1,"normal");
+                }                                                            
             }
             else if (typeOfComand.Equals("WhileLoop"))
             {
+                int conditionKey = -1;
+
                 string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
-                int conditionKey = highestKey+1;
+
+                // Handle condition
                 if (!condition.Equals("Unknown") && condition.Length > 0)
                 {
+                    conditionKey = highestKey + 1;
+
                     class_Object.methodCommands[forAdd].Add(condition);
 
-                    //add condition to edges
                     highestKey++;
+
                     class_Object.commandKeys[forAdd].Add(highestKey, condition);
+
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
-                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
-                }
-                if (command.ContainsKey("Body"))
-                {
-                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
-                    if (body != null && body.Count > 0)
+                    class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+
+                    // Handle body
+                    if (command.ContainsKey("Body"))
                     {
-                        parseCommands(body, class_Object, forAdd);
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+
+                        if (body != null && body.Count > 0)
+                        {
+                            parseCommands(body, class_Object, forAdd);
+                        }
                     }
-                }
-                if (highestKey != conditionKey)
-                {
-                   class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+                    if (highestKey != conditionKey)
+                    {
+                        class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
+
+                        class_Object.commandEdges[forAdd][highestKey].Remove(highestKey+1);
+                        class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+                    }
                 }
             }
             else if (typeOfComand.Equals("IfCondition"))
             {
+                int conditionKey = -1;
+                int lastIfBodyKey = -1;
                 string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
-                int conditionKey = highestKey + 1;
-                highestKey++;
-                class_Object.commandKeys[forAdd].Add(highestKey, condition);
-                class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
-                class_Object.commandEdges[forAdd][highestKey - 1].Add(highestKey, "normal");
-                if (!condition.Equals("Unknown") && condition.Length>0) 
+
+                // Handle condition
+                if (!condition.Equals("Unknown") && condition.Length > 0)
                 {
+                    conditionKey = highestKey + 1;
+
                     class_Object.methodCommands[forAdd].Add(condition);
-                }                
-                if (command.ContainsKey("Body"))
-                {
-                    var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
-                    if (body != null && body.Count > 0)
+
+                    highestKey++;
+
+                    class_Object.commandKeys[forAdd].Add(highestKey, condition);
+
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+
+                    // Handle body
+                    if (command.ContainsKey("Body"))
                     {
-                        parseCommands(body, class_Object, forAdd);
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        if (body != null && body.Count > 0)
+                        {
+                            parseCommands(body, class_Object, forAdd);
+                            lastIfBodyKey = highestKey;
+                        }
                     }
-                }
-                if (command.ContainsKey("ElseBody"))
-                {
-                    var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
-                    if (elseBody != null && elseBody.Count > 0)
+
+                    if (command.ContainsKey("ElseBody") && command["ElseBody"] is not null)
                     {
-                        parseCommands(elseBody, class_Object, forAdd);
+                        int elseKey = highestKey + 1;
+
+                        highestKey++;
+                        class_Object.methodCommands[forAdd].Add("else");
+
+                        class_Object.commandKeys[forAdd].Add(highestKey, "else");
+
+                        class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                        class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+
+                        //prepoj ifu no casu s elsom
+                        if (!class_Object.commandEdges[forAdd][conditionKey].ContainsKey(highestKey))
+                        {
+                            class_Object.commandEdges[forAdd][conditionKey].Add(highestKey, "false");
+                        }
+
+                        var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
+
+                        if (elseBody != null && elseBody.Count > 0)
+                        {
+                            parseCommands(elseBody, class_Object, forAdd);
+                        }
+                    }
+                    if (!command.ContainsKey("ElseBody") && conditionKey != highestKey)
+                    {
+                        class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
+                    }
+                    if (lastIfBodyKey != -1)
+                    {
+                        class_Object.commandEdges[forAdd][lastIfBodyKey].Remove(lastIfBodyKey + 1);
+                        class_Object.commandEdges[forAdd][lastIfBodyKey].Add(highestKey + 1, "normal");
                     }
                 }
             }
@@ -516,14 +632,14 @@ public class Reading_graph
                 {
                     class_Object.methodCommands[forAdd].Add(line);
 
-                    //add command to edges
                     highestKey++;
+
                     class_Object.commandKeys[forAdd].Add(highestKey, line);
+
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
-                    class_Object.commandEdges[forAdd][highestKey-1].Add(highestKey, "normal");
+                    class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
                 }
             }
-
         }
     }
 
