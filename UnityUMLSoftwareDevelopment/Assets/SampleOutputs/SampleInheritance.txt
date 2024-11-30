@@ -1,0 +1,78 @@
+using System;
+namespace SampleInheritance
+{
+internal class Animal {
+public string Name{get;  set; }
+public Animal (string name ) {
+Name = name;
+}
+public virtual void Speak() {
+Console.WriteLine($"{Name} makes a sound.");
+}
+}
+internal class Dog : Animal {
+public Dog (string name ) : base (name) {
+}
+public override void Speak() {
+Console.WriteLine($"{Name} barks.");
+}
+public void Fetch() {
+Console.WriteLine($"{Name} is fetching the ball!");
+}
+}
+internal class Cat : Animal {
+ public string lentak= "sojfosjf";
+ public int ole= 2;
+public Cat (string name ) : base (name) {
+}
+public override void Speak() {
+Console.WriteLine($"{Name} meows.");
+}
+public void Scratch() {
+Console.WriteLine($"{Name} is scratching!");
+}
+}
+internal class Zoo {
+ public Animal[] animals;
+public Zoo (Animal[] animals ) {
+this.animals = animals;
+}
+public void MakeAllAnimalsSpeak() {
+int c = 0;
+while (c < animals.Length) {
+int k = 3;
+while (k > 0) {
+animals[c].Speak();
+k--;
+}
+c++;
+}
+}
+public void PerformAnimalActions() {
+int i = 0;
+while (i < animals.Length) {
+if (animals[i] is Dog dog) {
+dog.Fetch();
+} else {
+if (animals[i] is Cat cat) {
+cat.Scratch();
+} else {
+Console.WriteLine($"{animals[i].Name} has no special action.");
+}
+}
+i++;
+}
+}
+}
+internal class Program {
+internal static void Main(string[] args) {
+Animal dog1 = new Dog("Rex");
+Animal cat1 = new Cat("Whiskers");
+Animal genericAnimal = new Animal("Moo");
+Animal[] animals = { dog1, cat1, genericAnimal };
+Zoo myZoo = new Zoo(animals);
+myZoo.MakeAllAnimalsSpeak();
+myZoo.PerformAnimalActions();
+}
+}
+}

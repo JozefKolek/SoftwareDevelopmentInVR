@@ -10,7 +10,7 @@ using UnityEngine.UI;
 
 public class UML_class_diagram : MonoBehaviour
 {
-    Reading_graph read = new Reading_graph("C:/Users/Admin/Documents/6. rocnik FMFI/Diploma2/Sample_code_C_pre_znaz_UML.cs");
+    Reading_graph read = new Reading_graph("Assets/SampleCode/Sample_code_C_pre_znaz_UML.cs");
     public List<Class_object> classObjects;
     public ClassDrawer classDrawer;     // Reference to ClassDrawer script for drawing classes
     public Canvas canvasObj;            // Canvas to hold the panels

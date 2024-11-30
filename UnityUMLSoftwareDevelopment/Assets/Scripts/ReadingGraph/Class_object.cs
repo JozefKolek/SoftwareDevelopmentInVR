@@ -5,12 +5,16 @@ using UnityEngine;
 public class Class_object
 {
     public string name;
+    public string type,visibility;
+    public bool isAbstract, isVirtual;
+
     public Dictionary<string, string> connections = new Dictionary<string, string>();
     public List<string> attributes = new List<string>();
     public List<string> methods = new List<string>();
     public Dictionary<string, List<string>> methodCommands = new Dictionary<string, List<string>>();
     public Dictionary<string,Dictionary<int, string>> commandKeys = new Dictionary<string, Dictionary<int, string>>();
-    public Dictionary<string, Dictionary<int, Dictionary<int,string>>> commandEdges = new Dictionary<string, Dictionary<int, Dictionary<int, string>>>(); 
+    public Dictionary<string, Dictionary<int, Dictionary<int,string>>> commandEdges = new Dictionary<string, Dictionary<int, Dictionary<int, string>>>();
+    public Dictionary<string, Dictionary<int, int>> closeIfElse = new Dictionary<string, Dictionary<int, int>>();
 
     public GameObject UInode;
     public Node vrchol;
@@ -21,7 +25,6 @@ public class Class_object
     public Class_object(string name)
     {
         this.name = name;
-
     }
 
 }

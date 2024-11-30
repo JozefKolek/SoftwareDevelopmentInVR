@@ -56,8 +56,14 @@ public class Reading_graph
         foreach (var claz in data)
         {
             // Initialize the Class_object
-            string className = claz["Name"].ToString();
+            string className = claz["Name"].ToString();            
+            
             Class_object class_Object = new Class_object(className);
+
+            string typ = claz.ContainsKey("Type") ? class_Object.type = claz["Type"].ToString().ToLower() : class_Object.type = "Unknown";
+            string visibil = claz.ContainsKey("Visibility") ? class_Object.visibility = claz["Visibility"].ToString() : class_Object.visibility =  "Unknown";
+            bool isAbstract = claz.ContainsKey("IsAbstract") ? class_Object.isAbstract = (bool)claz["IsAbstract"] : class_Object.isAbstract =  false;
+            bool isVirtual = claz.ContainsKey("IsVirtual") ? class_Object.isVirtual = (bool)claz["IsVirtual"] : class_Object.isVirtual =  false;
             // Access Attributes if they exist
             if (claz.ContainsKey("Attributes"))
             {
@@ -100,6 +106,16 @@ public class Reading_graph
                         string forAdd = "";
                         if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
                         forAdd += type + " " + name;
+                        //docasne riesenie ak sa bude setovat value dopredu nebude to dobre
+                        if(hasGetter || hasSetter) 
+                        {
+                            forAdd += "{";
+                            if (hasGetter) { forAdd += "get; "; }
+                            if (hasSetter) { forAdd += " set; "; }
+                            forAdd += "}";
+                        }
+                        
+                        
                         if (!defaultValue.Equals("None")) { forAdd += "= " + defaultValue; }
                         class_Object.attributes.Add(forAdd);
                     }
@@ -120,8 +136,13 @@ public class Reading_graph
                     {
                         string constructorName = constructor.ContainsKey("Name") ? constructor["Name"].ToString() : "Unknown";
                         string visibility = constructor.ContainsKey("Visibility") ? constructor["Visibility"].ToString() : "Unknown";
+                        bool abstrakt = constructor.ContainsKey("IsAbstract") ? (bool)constructor["IsAbstract"] : false;
+                        bool virtualn = constructor.ContainsKey("IsVirtual") ? (bool)constructor["IsVirtual"] : false;
+                        var baseVariables = JsonConvert.DeserializeObject<List<string>>(JsonConvert.SerializeObject(constructor["BaseCall"],Formatting.Indented));
                         string forAdd = "";
                         if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                        if(virtualn) { forAdd += "virtual "; }
+                        if(abstrakt) { forAdd += "abstract "; }
                         forAdd += constructorName + " (";
                         //Accessibility to parameters which constructors have
                         if (constructor.ContainsKey("Parameters"))
@@ -138,11 +159,25 @@ public class Reading_graph
                                 forAdd = forAdd.Substring(0, forAdd.Length - 1);
                             }
                         }
-                        forAdd += constructorName + " )";
+                        forAdd += " )";
+                        if(baseVariables!=null && baseVariables.Count > 0)
+                        {
+                            Debug.Log("dostal som sa sem");
+                            int counter = 0;
+                            forAdd += " : base (";
+                            foreach(string variable in baseVariables)
+                            {
+                                counter++;
+                                if (counter == 1) { forAdd += variable; }
+                                else { forAdd += ", " + variable; }
+                            }
+                            forAdd += ")";
+                        }
                         class_Object.methods.Add(forAdd);
                         class_Object.methodCommands.Add(forAdd, new List<string>());
                         class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
                         class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
+                        class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
                         Debug.Log("som konstr?");
                         if (constructor.ContainsKey("Commands")){                            
                             var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
@@ -207,9 +242,15 @@ public class Reading_graph
                         string returnType = method.ContainsKey("ReturnType") ? method["ReturnType"].ToString() : "Unknown";
                         string name = method.ContainsKey("Name") ? method["Name"].ToString() : "Unknown";
                         bool isOveride = method.ContainsKey("IsOverride") ? (bool) method["IsOverride"] : false;
+                        bool abstrakt = method.ContainsKey("IsAbstract") ? (bool)method["IsAbstract"] : false;
+                        bool virtualn = method.ContainsKey("IsVirtual") ? (bool)method["IsVirtual"] : false;
+                        bool isStatic = method.ContainsKey("IsStatic") ? (bool)method["IsStatic"] : false;
                         string forAdd = "";
-                        if (isOveride) { forAdd += "override "; }
                         if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                        if (isStatic) { forAdd += "static "; }
+                        if (virtualn) { forAdd += "virtual "; }
+                        if (abstrakt) { forAdd += "abstract "; }
+                        if (isOveride) { forAdd += "override "; }
                         forAdd += returnType + " " + name + "(";
                         //Include parameters
                         if (method.ContainsKey("Parameters"))
@@ -231,6 +272,7 @@ public class Reading_graph
                         class_Object.methodCommands.Add(forAdd, new List<string>());
                         class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
                         class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
+                        class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
                         //include commands
                         if (method.ContainsKey("Commands"))
                         {
@@ -294,7 +336,16 @@ public class Reading_graph
             }
             classDictionary.Add(className,class_Object);
         }
-
+        foreach(var claz in classDictionary)
+        {
+            foreach (var connect in claz.Value.connections)
+            {
+                if (classDictionary[connect.Key].type.Equals("interface"))
+                {
+                    classDictionary[claz.Key].connections[connect.Key] = "Realisation";
+                }
+            }
+        }
         //add Aggregation, Composition, Dependency, Association
         //iterate again over clases
         foreach (var claz in data)
@@ -613,10 +664,12 @@ public class Reading_graph
                         {
                             parseCommands(elseBody, class_Object, forAdd);
                         }
+                        class_Object.closeIfElse[forAdd].Add(elseKey,highestKey+1);
                     }
                     if (!command.ContainsKey("ElseBody") && conditionKey != highestKey)
                     {
                         class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
+                        class_Object.closeIfElse[forAdd].Add(conditionKey,highestKey + 1);
                     }
                     if (lastIfBodyKey != -1)
                     {
@@ -698,9 +751,11 @@ public class Reading_graph
             Commands = ExtractCommands(method.Body), // Extract detailed commands
             IsAbstract = method.Modifiers.Any(SyntaxKind.AbstractKeyword),  // Check if method is abstract
             IsVirtual = method.Modifiers.Any(SyntaxKind.VirtualKeyword),  // Check if method is virtual
-            IsOverride = method.Modifiers.Any(SyntaxKind.OverrideKeyword)  // Check if method is override
+            IsOverride = method.Modifiers.Any(SyntaxKind.OverrideKeyword), // Check if method is override
+            IsStatic = method.Modifiers.Any(SyntaxKind.StaticKeyword)       // Check if method is static
         };
     }
+
 
     private static List<object> ExtractCommands(SyntaxNode node)
     {
@@ -769,9 +824,16 @@ public class Reading_graph
             Parameters = constructor.ParameterList.Parameters.Select(p => new { p.Identifier.Text, Type = p.Type.ToString() }).ToList(),
             Commands = ExtractCommands(constructor.Body), // Extract detailed commands
             IsAbstract = constructor.Modifiers.Any(SyntaxKind.AbstractKeyword),  // Check if constructor is abstract
-            IsVirtual = constructor.Modifiers.Any(SyntaxKind.VirtualKeyword)  // Check if constructor is virtual
+            IsVirtual = constructor.Modifiers.Any(SyntaxKind.VirtualKeyword),  // Check if constructor is virtual
+            BaseCall = constructor.Initializer != null && constructor.Initializer.IsKind(SyntaxKind.BaseConstructorInitializer)
+                ? constructor.Initializer.ArgumentList.Arguments.Select(arg => arg.ToString()).ToList()
+                : null,
+            ThisCall = constructor.Initializer != null && constructor.Initializer.IsKind(SyntaxKind.ThisConstructorInitializer)
+                ? constructor.Initializer.ArgumentList.Arguments.Select(arg => arg.ToString()).ToList()
+                : null
         };
     }
+
 
     private static Dictionary<string, string> ExtractConnections(BaseListSyntax baseList)
     {

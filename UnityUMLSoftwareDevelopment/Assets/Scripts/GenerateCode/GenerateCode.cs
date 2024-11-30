@@ -19,12 +19,46 @@ public class GenerateCode
 
     public void generateCode()
     {
+        //docasne pridanie namespacu
+        output.Add("using System;");
+        output.Add("namespace SampleInheritance");
+        output.Add("{");
         foreach(Class_object claz in class_Objects)
         {
-            output.Add("class " + claz.name + " {");
+            List<string> clazName = new List<string>();
+            if (!claz.visibility.Equals("Unknown")) { clazName.Add(claz.visibility); }
+            if (claz.isAbstract) { clazName.Add("abstract"); }
+            if (claz.isVirtual) { clazName.Add("virtual"); }
+            clazName.Add(claz.type);
+            clazName.Add(claz.name);
+            int counter = 0;
+            foreach(var connect in claz.connections)
+            {
+                if (connect.Value.Equals("Generalisation") || connect.Value.Equals("Realisation"))
+                {
+                    counter++;
+                    if (counter == 1)
+                    {
+                        clazName.Add(":");
+                        clazName.Add(connect.Key);
+                    } else
+                    {
+                        clazName.Add(", " + connect.Key);
+                    }
+                }
+            }
+            clazName.Add("{");
+            output.Add(String.Join(" ",clazName));
             foreach(var attribute in claz.attributes)
             {
-                output.Add(attribute + ";");
+                if (attribute.Contains("set;") || attribute.Contains("set;"))
+                {
+                    output.Add(attribute);
+                } else
+                {
+                    output.Add(attribute + ";");
+                }
+                
             }
             foreach(var method in claz.methods)
             {
@@ -34,8 +68,9 @@ public class GenerateCode
             }
             output.Add("}");
         }
+        output.Add("}");
         Debug.Log("Vysledok");
-        string filePath = "C:/Users/Admin/Desktop/output.txt";
+        string filePath = "Assets/SampleOutputs/SampleInheritance.txt";
         try
         {
             File.Delete(filePath);
@@ -44,6 +79,7 @@ public class GenerateCode
         {
             Console.WriteLine("An error occurred while writting to the file");
         }
+        compileCode(filePath);
     }
 
     public void generateMethodCode(Class_object class_Object,string method)
@@ -56,6 +92,7 @@ public class GenerateCode
             bool isFor = false;            
             foreach(var key in class_Object.commandKeys[method]){if (command.Equals(key.Value)) { CommandKey = key.Key;}}
             foreach(var edge in class_Object.commandEdges[method]) { if (edge.Value.ContainsKey(CommandKey) && edge.Key > CommandKey) { isFor = true; break; } }
+            foreach(var endIfElse in class_Object.closeIfElse[method]){if (endIfElse.Value == CommandKey){ output.Add("}"); }}
             if (isFor) 
             { 
                 output.Add("while (" + command + ") {");
@@ -103,6 +140,33 @@ public class GenerateCode
                         Debug.Log(claz.name + " " + met.Key + " " + from.Key + " " + to.Key + " " + to.Value);
                     }
                 }
+            }
+        }
+    }
+
+    public void compileCode(string pathToFile)
+    {
+        string scriptCode = File.ReadAllText(pathToFile);
+        var syntaxTree = CSharpSyntaxTree.ParseText(scriptCode);
+        var references = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
+        };
+        var compilation = CSharpCompilation.Create(
+            "Script Compilation",
+            new[] { syntaxTree},
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var diagnostics = compilation.GetDiagnostics();
+        if (diagnostics.Length == 0)
+        {
+            Debug.Log("Program is without beefstake");
+        } else
+        {
+            foreach(var chyba in diagnostics)
+            {
+                Debug.Log(chyba.ToString());
             }
         }
     }
