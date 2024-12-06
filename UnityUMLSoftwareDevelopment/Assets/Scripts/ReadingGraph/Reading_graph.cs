@@ -24,14 +24,14 @@ public class Reading_graph
         List<Class_object> classList = new List<Class_object>();
         Dictionary<string, Class_object>  classDictionary = new Dictionary<string, Class_object>();
 
-        // Parsovanie C# kódu
+        // Parse the syntax tree
         var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(path));
         var root = syntaxTree.GetCompilationUnitRoot();
-
+        
         // Extract all classes and interfaces
         var classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
         var interfaceNodes = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
-
+        var usings = root.Usings;
         // Extracted data
         var result = new List<object>();
 
@@ -50,15 +50,23 @@ public class Reading_graph
         Debug.Log(jsonFormat.ToString());
 
         // Deserialize the JSON into a list of dictionaries
-        var data = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonFormat);                
-
+        var data = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonFormat);
+        int pocitadlo = 0;
         //iterate over clases
         foreach (var claz in data)
         {
+            pocitadlo++;
             // Initialize the Class_object
             string className = claz["Name"].ToString();            
             
             Class_object class_Object = new Class_object(className);
+            if(pocitadlo == 1)
+            {
+                foreach(var usin in usings)
+                {
+                    class_Object.usings.Add(usin.ToString());
+                }
+            }
 
             string typ = claz.ContainsKey("Type") ? class_Object.type = claz["Type"].ToString().ToLower() : class_Object.type = "Unknown";
             string visibil = claz.ContainsKey("Visibility") ? class_Object.visibility = claz["Visibility"].ToString() : class_Object.visibility =  "Unknown";
@@ -340,7 +348,7 @@ public class Reading_graph
         {
             foreach (var connect in claz.Value.connections)
             {
-                if (classDictionary[connect.Key].type.Equals("interface"))
+                if (classDictionary.ContainsKey(connect.Key) &&  classDictionary[connect.Key].type.Equals("interface"))
                 {
                     classDictionary[claz.Key].connections[connect.Key] = "Realisation";
                 }
@@ -385,7 +393,7 @@ public class Reading_graph
                                 {
                                     foreach (string command in method.Value)
                                     {
-                                        string[] lines = command.Split("\n");                                        
+                                        string[] lines = command.Split("/n");                                        
                                         foreach (string line in lines)
                                         {
                                             //nasiel som premennu typu targetClass ktorej chybala inicializacia
@@ -450,7 +458,7 @@ public class Reading_graph
                                 {
                                     foreach (string command in method.Value)
                                     {
-                                        string[] lines = command.Split("\n");
+                                        string[] lines = command.Split("/n");
                                         foreach (string line in lines)
                                         {
                                             if (line.Contains(name))
@@ -486,7 +494,7 @@ public class Reading_graph
             {
                 foreach (string command in method.Value)
                 {
-                    string[] lines = command.Split("\n");
+                    string[] lines = command.Split("/n");
                     foreach (string line in lines)
                     {
                         string targetClasName = " ";

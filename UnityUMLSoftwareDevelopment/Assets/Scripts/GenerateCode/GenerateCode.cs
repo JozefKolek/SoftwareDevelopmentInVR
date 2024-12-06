@@ -8,21 +8,30 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Newtonsoft.Json;
 
-public class GenerateCode
+public class GenerateCode : MonoBehaviour
 {
+    public GameObject canvas;
     public List<Class_object> class_Objects;
     public List<string> output = new List<string>();
-    public GenerateCode(List<Class_object> class_Objects)
+    private List<Class_object> classObjects;
+    private Canvas canvasObj;
+
+    public GenerateCode(List<Class_object> classObjects, Canvas canvasObj)
     {
-        this.class_Objects = class_Objects;
+        this.classObjects = classObjects;
+        this.canvasObj = canvasObj;
     }
 
     public void generateCode()
     {
-        //docasne pridanie namespacu
-        output.Add("using System;");
-        output.Add("namespace SampleInheritance");
-        output.Add("{");
+        this.class_Objects = classObjects;
+        foreach(Class_object claz in class_Objects)
+        {
+            foreach(string usen in claz.usings)
+            {
+                output.Add(usen);
+            }
+        }
         foreach(Class_object claz in class_Objects)
         {
             List<string> clazName = new List<string>();
@@ -68,9 +77,8 @@ public class GenerateCode
             }
             output.Add("}");
         }
-        output.Add("}");
         Debug.Log("Vysledok");
-        string filePath = "Assets/SampleOutputs/SampleInheritance.txt";
+        string filePath = "Assets/SampleOutputs/SampleInheritance.cs";
         try
         {
             File.Delete(filePath);
@@ -148,8 +156,17 @@ public class GenerateCode
     {
         string scriptCode = File.ReadAllText(pathToFile);
         var syntaxTree = CSharpSyntaxTree.ParseText(scriptCode);
+
+        // Unity assembly paths (update these paths according to your Unity installation)
+        string unityEnginePath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Managed/UnityEngine.dll";
+        string unityEditorPath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Managed/UnityEditor.dll";
+        string mscorlibPath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Tools/netcorerun/mscorlib.dll";
+
         var references = new[]
         {
+            MetadataReference.CreateFromFile(unityEnginePath),
+            MetadataReference.CreateFromFile(unityEditorPath),
+            MetadataReference.CreateFromFile(mscorlibPath),
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
             MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
         };
@@ -159,9 +176,16 @@ public class GenerateCode
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
         var diagnostics = compilation.GetDiagnostics();
+        GameObject result = new GameObject("Result");
+        //var scriptType = System.Type.GetType("SampleInheritance");
+        //if (scriptType != null)
+        //{
+        //    result.AddComponent(scriptType);
+        //    Debug.Log($"{pathToFile} script successfully added to {result.name}");
+        //}
         if (diagnostics.Length == 0)
         {
-            Debug.Log("Program is without beefstake");
+            Debug.Log("Program is without beefstake");            
         } else
         {
             foreach(var chyba in diagnostics)

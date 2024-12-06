@@ -11,6 +11,8 @@ using UnityEngine.UI;
 public class UML_class_diagram : MonoBehaviour
 {
     Reading_graph read = new Reading_graph("Assets/SampleCode/Sample_code_C_pre_znaz_UML.cs");
+    //Reading_graph read = new Reading_graph("Assets/SampleCode/RotatingSphere.cs");
+    //Reading_graph read = new Reading_graph("C:/Users/Admin/Desktop/RotatingSphere.cs");
     public List<Class_object> classObjects;
     public ClassDrawer classDrawer;     // Reference to ClassDrawer script for drawing classes
     public Canvas canvasObj;            // Canvas to hold the panels
@@ -77,7 +79,7 @@ public class UML_class_diagram : MonoBehaviour
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
         GameObject GenerateCodeButton = Instantiate(buttonPrefab, canvasObj.transform);
-        GenerateCode generator = new GenerateCode(classObjects);
+        GenerateCode generator = new GenerateCode(classObjects,canvasObj);
         GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generator.generateCode());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
 
@@ -274,6 +276,8 @@ public class UML_class_diagram : MonoBehaviour
         addClassPopUp.SetActive(false);
         string claz_name = addClassPopUp.GetComponentInChildren<TMP_InputField>().text;
         Class_object classObj = new Class_object(claz_name);
+        //docasne
+        classObj.visibility = "public";
         classObjects.Add(classObj);
         redrawGraph();
     }
@@ -287,6 +291,7 @@ public class UML_class_diagram : MonoBehaviour
             classObj.methodCommands.Add(method, new List<string>());
             classObj.commandKeys.Add(method, new Dictionary<int, string>());
             classObj.commandEdges.Add(method, new Dictionary<int, Dictionary<int, string>>());
+            classObj.closeIfElse.Add(method, new Dictionary<int, int>());
 
             classObj.commandKeys[method].Add(1, "start");
             classObj.commandKeys[method].Add(0, "end");
@@ -335,6 +340,7 @@ public class UML_class_diagram : MonoBehaviour
             classObj.methodCommands.Remove(method);
             classObj.commandKeys.Remove(method);
             classObj.commandEdges.Remove(method);
+            classObj.closeIfElse.Remove(method);
         }        
     }
 

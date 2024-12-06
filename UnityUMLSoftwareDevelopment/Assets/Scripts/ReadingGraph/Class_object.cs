@@ -11,6 +11,7 @@ public class Class_object
     public Dictionary<string, string> connections = new Dictionary<string, string>();
     public List<string> attributes = new List<string>();
     public List<string> methods = new List<string>();
+    public List<string> usings = new List<string>();
     public Dictionary<string, List<string>> methodCommands = new Dictionary<string, List<string>>();
     public Dictionary<string,Dictionary<int, string>> commandKeys = new Dictionary<string, Dictionary<int, string>>();
     public Dictionary<string, Dictionary<int, Dictionary<int,string>>> commandEdges = new Dictionary<string, Dictionary<int, Dictionary<int, string>>>();
