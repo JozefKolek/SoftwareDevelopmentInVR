@@ -78,7 +78,7 @@ public class GenerateCode : MonoBehaviour
             output.Add("}");
         }
         Debug.Log("Vysledok");
-        string filePath = "Assets/SampleOutputs/SampleInheritance.cs";
+        string filePath = "C:/Users/Admin/Desktop/SampleInheritance.cs";
         try
         {
             File.Delete(filePath);
@@ -185,9 +185,10 @@ public class GenerateCode : MonoBehaviour
         //}
         if (diagnostics.Length == 0)
         {
-            Debug.Log("Program is without beefstake");            
+            Debug.Log("Program compiled successfully");            
         } else
         {
+            Debug.Log("Errors!");
             foreach(var chyba in diagnostics)
             {
                 Debug.Log(chyba.ToString());

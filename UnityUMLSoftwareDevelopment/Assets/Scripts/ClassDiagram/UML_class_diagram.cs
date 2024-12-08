@@ -7,9 +7,11 @@ using Microsoft.Msagl.Layout.Layered;
 using Microsoft.Msagl.Core.Routing;
 using TMPro;
 using UnityEngine.UI;
-
+using System.Collections;
+ 
 public class UML_class_diagram : MonoBehaviour
 {
+
     Reading_graph read = new Reading_graph("Assets/SampleCode/Sample_code_C_pre_znaz_UML.cs");
     //Reading_graph read = new Reading_graph("Assets/SampleCode/RotatingSphere.cs");
     //Reading_graph read = new Reading_graph("C:/Users/Admin/Desktop/RotatingSphere.cs");
@@ -43,7 +45,7 @@ public class UML_class_diagram : MonoBehaviour
             LayerSeparation = 50,
             NodeSeparation = 50            
         };
-        settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;        
+        settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter;        
 
         // Initialize the Unity transform for the units (node container)
         units = transform.Find("Units");
@@ -53,10 +55,10 @@ public class UML_class_diagram : MonoBehaviour
             units.SetParent(transform);
         }
 
-        GenerateUMLDiagram();        
+        StartCoroutine(GenerateUMLDiagram());
     }    
 
-    public void GenerateUMLDiagram()
+    public IEnumerator GenerateUMLDiagram()
     {
         GameObject AddClassPopUp = Instantiate(addClassPrefab, canvasObj.transform);
         addEdgePopUp = Instantiate(addEdgePrefab, canvasObj.transform);
@@ -120,7 +122,19 @@ public class UML_class_diagram : MonoBehaviour
             msaglNode.Center = initialCenter;
             graph.Nodes.Add(msaglNode);
             classObj.vrchol = msaglNode;
-
+        }        
+        //ui elements are not recalculated instantly
+        yield return null;
+        yield return null;
+        yield return null;
+        foreach (Class_object classObj in classObjects)
+        {
+            GameObject classPanel = classObj.UInode;
+            RectTransform rectTransform = classPanel.GetComponent<RectTransform>();
+            float width = rectTransform.rect.width;
+            float height = rectTransform.rect.height;
+            Debug.Log($"{classPanel.name}: {width}, {height}");
+            classObj.vrchol.BoundaryCurve = CurveFactory.CreateRectangle(width / factor, height / factor, classObj.vrchol.Center);
         }
 
         // Adjust panel layout (spacing out panels)
@@ -153,11 +167,11 @@ public class UML_class_diagram : MonoBehaviour
             Node msaglNode = kvp.vrchol;
 
             // Calculate the new position based on MSAGL layout
-            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor, (float)msaglNode.Center.Y * factor);
+            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor-425, (float)msaglNode.Center.Y * factor-540);
 
             // Clamp the position to keep within canvas bounds
-            newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth+150, canvasWidth-150);
-            newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight+150, canvasHeight-150);
+            //newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth+150, canvasWidth-150);
+            //newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight+150, canvasHeight-150);
 
             // Apply the clamped position to the UI node
             RectTransform rectTransform = kvp.UInode.GetComponent<RectTransform>();
@@ -448,6 +462,6 @@ public class UML_class_diagram : MonoBehaviour
             claz.vrchol = null;
         }
 
-        GenerateUMLDiagram();
+        StartCoroutine(GenerateUMLDiagram());
     }
 }
