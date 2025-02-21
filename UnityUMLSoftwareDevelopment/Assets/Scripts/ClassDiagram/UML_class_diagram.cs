@@ -8,7 +8,9 @@ using Microsoft.Msagl.Core.Routing;
 using TMPro;
 using UnityEngine.UI;
 using System.Collections;
- 
+using Microsoft.Msagl.Core.Geometry;
+using Radishmouse;
+
 public class UML_class_diagram : MonoBehaviour
 {
 
@@ -33,30 +35,12 @@ public class UML_class_diagram : MonoBehaviour
     private LayoutAlgorithmSettings settings;
     private Transform units;
 
-    void Start()
+    private void Start()
     {
         activityCanvasObj.SetActive(false);
         classObjects = read.read_from_code();
-        
-        // Initialize geometry graph and layout settings
-        graph = new GeometryGraph();
-        settings = new SugiyamaLayoutSettings
-        {
-            LayerSeparation = 50,
-            NodeSeparation = 50            
-        };
-        settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter;        
-
-        // Initialize the Unity transform for the units (node container)
-        units = transform.Find("Units");
-        if (units == null)
-        {
-            units = new GameObject("Units").transform;
-            units.SetParent(transform);
-        }
-
-        StartCoroutine(GenerateUMLDiagram());
-    }    
+        redrawGraph();
+    }
 
     public IEnumerator GenerateUMLDiagram()
     {
@@ -69,7 +53,7 @@ public class UML_class_diagram : MonoBehaviour
         removeEdgePopUp.SetActive(false);
         TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
         dropdowns[1].ClearOptions();
-        dropdowns[1].AddOptions(new List<string> { "generalization", "agregation", "composition", "dependency", "realisation" });                
+        dropdowns[1].AddOptions(new List<string> { "generalization", "agregation", "composition", "dependency", "realisation" });
 
         GameObject AddClassButton = Instantiate(buttonPrefab, canvasObj.transform);
         AddClassButton.GetComponent<Button>().onClick.AddListener(() => AddClass(AddClassPopUp));
@@ -81,7 +65,7 @@ public class UML_class_diagram : MonoBehaviour
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
         GameObject GenerateCodeButton = Instantiate(buttonPrefab, canvasObj.transform);
-        GenerateCode generator = new GenerateCode(classObjects,canvasObj);
+        GenerateCode generator = new GenerateCode(classObjects, canvasObj);
         GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generator.generateCode());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
 
@@ -90,7 +74,7 @@ public class UML_class_diagram : MonoBehaviour
         addClassForm.sizeDelta = new Vector2(150, 60);
         GenerateCodeButton.GetComponentInChildren<TextMeshProUGUI>().text = "Generate code";
 
-        // Create each class panel and set up initial positions
+        //prvotne vykreslenie vrcholov na platno kvoli ziskaniu paramtrov potrebnych pre Node MSAGL
         foreach (Class_object classObj in classObjects)
         {
             // Create and position each class panel using ClassDrawer
@@ -122,33 +106,17 @@ public class UML_class_diagram : MonoBehaviour
             msaglNode.Center = initialCenter;
             graph.Nodes.Add(msaglNode);
             classObj.vrchol = msaglNode;
-        }        
-        //ui elements are not recalculated instantly
-        yield return null;
-        yield return null;
-        yield return null;
-        foreach (Class_object classObj in classObjects)
-        {
-            GameObject classPanel = classObj.UInode;
-            RectTransform rectTransform = classPanel.GetComponent<RectTransform>();
-            float width = rectTransform.rect.width;
-            float height = rectTransform.rect.height;
-            Debug.Log($"{classPanel.name}: {width}, {height}");
-            classObj.vrchol.BoundaryCurve = CurveFactory.CreateRectangle(width / factor, height / factor, classObj.vrchol.Center);
         }
 
-        // Adjust panel layout (spacing out panels)
-        PositionPanels();
-
+        //pridanie hran do msagl
         foreach (Class_object classObj in classObjects)
         {
-            // Draw connections to related classes
+            // Msagl edges part
             foreach (var connection in classObj.connections)
             {
                 Class_object targetClass = classObjects.Find(obj => obj.name == connection.Key);
                 if (targetClass != null && targetClass.UInode != null)
                 {
-                    DrawConnectionLine(classObj.UInode.transform, targetClass.UInode.transform, classObj, targetClass);
                     Edge msaglHrana = new Edge(classObj.vrchol, targetClass.vrchol);
                     classObj.hrany.Add(targetClass.name, msaglHrana);
                     graph.Edges.Add(msaglHrana);
@@ -157,125 +125,111 @@ public class UML_class_diagram : MonoBehaviour
         }
 
         LayoutHelpers.CalculateLayout(graph, settings, null);
-
-        RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
-        float canvasWidth = canvasRect.rect.width / 2;  // Half-width for clamping in anchored space
-        float canvasHeight = canvasRect.rect.height / 2; // Half-height for clamping in anchored space
-
+                
+        //redrawGraph node positions based on msagl results
         foreach (var kvp in classObjects)
         {
             Node msaglNode = kvp.vrchol;
 
             // Calculate the new position based on MSAGL layout
-            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor-425, (float)msaglNode.Center.Y * factor-540);
-
-            // Clamp the position to keep within canvas bounds
-            //newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth+150, canvasWidth-150);
-            //newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight+150, canvasHeight-150);
+            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor - 425, (float)msaglNode.Center.Y * factor - 540);
 
             // Apply the clamped position to the UI node
             RectTransform rectTransform = kvp.UInode.GetComponent<RectTransform>();
             rectTransform.anchoredPosition = newPosition;
         }
-    }    
 
-    // Draw the line between the start and end class panels
+        //DrawConnectionLine edges based on msagl results
+        foreach (Class_object classObj in classObjects)
+        {
+            // Msagl edges part
+            foreach (var connection in classObj.hrany)
+            {
+                Class_object targetClass = classObjects.Find(obj => obj.name == connection.Key);
+                if (targetClass != null && targetClass.UInode != null)
+                {
+                    DrawConnectionLine(classObj.UInode.transform, targetClass.UInode.transform, classObj, targetClass);
+                }
+            }
+        }
+
+        yield return null;
+        yield return null;
+        yield return null;
+    }
+
     private void DrawConnectionLine(Transform startTransform, Transform endTransform, Class_object startClass, Class_object endClass)
     {
         // Instantiate the line prefab
         GameObject lineInstance = Instantiate(linePrefab, canvasObj.transform);
+        lineInstance.GetComponent<Transform>().position = new Vector3(0,0,0);
+        lineInstance.name = "Edge_" + startClass.name + "_" + endClass.name;
+        startClass.UIedges.Add(endClass.name, lineInstance);
 
-        // Initialize the line between start and end transforms
-        LineUpdater lineUpdater = lineInstance.GetComponent<LineUpdater>();
-        lineUpdater.Initialize(startClass.UInode, endClass.UInode);
+        UILineRenderer lineRenderer = lineInstance.GetComponent<UILineRenderer>();
 
-        // Optionally, store the line in the startClass's UIedges dictionary
-        startClass.UIedges[endClass.name] = lineInstance;
+        Edge msaglEdge = startClass.hrany[endClass.name];
+        List<Vector3> points = new List<Vector3>();
+        Curve curve = msaglEdge.Curve as Curve;
 
-        Vector3 start =  lineUpdater.GetClosestEdgePosition(startTransform, endTransform.position);
-        Vector3 end =  lineUpdater.GetClosestEdgePosition(endTransform,endTransform.position);
-        lineUpdater.SetLinePositions(start, end);
-    }
-    
-    // Basic layout adjustment (grid pattern, customize as needed)
-    private void PositionPanels()
-    {
-        float offsetX = 250f;  // Adjust spacing between panels horizontally
-        float offsetY = -150f; // Adjust spacing between panels vertically
-        int index = 0;
-
-        foreach (var classObj in classObjects)
+        if (curve != null)
         {
-            if (classObj.UInode != null)
+            // Add the start point
+            Point p = curve[curve.ParStart];
+            points.Add(new Vector3((float)p.X * factor - 425, (float)p.Y * factor - 540, 0));
+
+            // Add the intermediate points
+            foreach (ICurve seg in curve.Segments)
             {
-                RectTransform rectTransform = classObj.UInode.GetComponent<RectTransform>();
-                rectTransform.anchoredPosition = new Vector2(offsetX * (index % 5), offsetY * (index / 5));
-                index++;
+                p = seg[seg.ParEnd];
+                points.Add(new Vector3((float)p.X * factor - 425, (float)p.Y * factor - 540, 0));
             }
         }
-    }
-
-    // Update lines when class panels are moved
-    public void UpdateLines()
-    {
-        foreach(var claz in classObjects)
+        else
         {
-            foreach (var line in claz.UIedges.Values)
+            // Handle the case where the curve is a line segment
+            LineSegment ls = msaglEdge.Curve as LineSegment;
+            if (ls != null)
             {
-                var lineUpdater = line.GetComponent<LineUpdater>();
-                if (lineUpdater != null)
-                {
-                    lineUpdater.UpdateLinePositions();
-                }
+                Point p = ls.Start;
+                points.Add(new Vector3((float)p.X * factor - 425, (float)p.Y * factor - 540, 0));
+                p = ls.End;
+                points.Add(new Vector3((float)p.X * factor - 425, (float)p.Y * factor - 540, 0));
             }
-        }        
-    }    
-
-    internal void AddEdge(string name)
-    {
-        addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to class";
-        List<string> classes = new List<string>();
-        foreach (var claz in classObjects) { if (!claz.name.Equals(name)) { classes.Add(claz.name); } }
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            foreach (var targetClass in classObj.connections.Keys){classes.Remove(targetClass);}            
         }
-        TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
-        dropdowns[0].ClearOptions();
-        dropdowns[0].AddOptions(classes);
-
-        addEdgePopUp.SetActive(true);
-        addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(name));
-    }    
-
-    private void AddEdgeToGraph(string name)
-    {
-        addEdgePopUp.SetActive(false);
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
-            string targetClass = dropdowns[0].options[dropdowns[0].value].text;
-            string connection = dropdowns[1].options[dropdowns[1].value].text;
-            if (!classObj.connections.ContainsKey(targetClass)) { classObj.connections.Add(targetClass, connection); }
-            redrawGraph();
-        }
+        lineRenderer.points = points.ToArray();
     }
 
-    internal int AddActivityNode(string text, string method, string name)
+    public void redrawGraph()
     {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
+        //intialize msagl graph part
+        // Initialize geometry graph and layout settings
+        graph = new GeometryGraph();
+        settings = new SugiyamaLayoutSettings
         {
-            int newKey = 2;
-            foreach(int key in classObj.commandKeys[method].Keys) { if (key > newKey) { newKey = key; } }
-            classObj.commandKeys[method].Add(newKey+1, text);
-            classObj.methodCommands[method].Add(text);
-            classObj.commandEdges[method].Add(newKey+1, new Dictionary<int, string>());
-            return newKey+1;
+            LayerSeparation = 50,
+            NodeSeparation = 50,
+            EdgeRoutingSettings = new EdgeRoutingSettings
+            {
+                EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter, // Change to Rectilinear for orthogonal edges
+                PolylinePadding = 5, // Add padding to ensure space around edges
+                CornerRadius = 10 // Add corner radius for smoother bends
+            }
+        };
+
+        
+        //remove all nodes and edges from canvas 
+        foreach (var claz in classObjects)
+        {
+            Destroy(claz.UInode);
+            claz.UInode = null;
+            foreach (KeyValuePair<string, GameObject> edge in claz.UIedges) { Destroy(edge.Value); }
+            claz.UIedges.Clear();
+            claz.hrany.Clear();
+            claz.vrchol = null;
         }
-        return -1;
+
+        StartCoroutine(GenerateUMLDiagram());
     }
 
     private void AddClass(GameObject addClassPopUp)
@@ -296,172 +250,4 @@ public class UML_class_diagram : MonoBehaviour
         redrawGraph();
     }
 
-    internal void AddMethod(string method, string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            classObj.methods.Add(method);
-            classObj.methodCommands.Add(method, new List<string>());
-            classObj.commandKeys.Add(method, new Dictionary<int, string>());
-            classObj.commandEdges.Add(method, new Dictionary<int, Dictionary<int, string>>());
-            classObj.closeIfElse.Add(method, new Dictionary<int, int>());
-
-            classObj.commandKeys[method].Add(1, "start");
-            classObj.commandKeys[method].Add(0, "end");
-
-            classObj.commandEdges[method].Add(1, new Dictionary<int, string>());
-            classObj.commandEdges[method].Add(0, new Dictionary<int, string>());
-            redrawGraph();
-        }
-    }
-
-    internal void AddAttribute(string attribute, string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            classObj.attributes.Add(attribute);
-            redrawGraph();
-        }
-    }
-
-    public void AddActionEdge(int key, int targetIndex, string method, string connection, string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {            
-            classObj.commandEdges[method][key].Add(targetIndex, connection);
-        }
-    }
-
-    public void RemoveAttributeFromClass(string className, string attribute)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == className);
-        if (classObj != null)
-        {
-            classObj.attributes.Remove(attribute);
-        }
-    }
-
-    // Function to remove a method from a specific class object
-    public void RemoveMethodFromClass(string className, string method)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == className);
-        if (classObj != null)
-        {
-            classObj.methods.Remove(method);
-            classObj.methodCommands.Remove(method);
-            classObj.commandKeys.Remove(method);
-            classObj.commandEdges.Remove(method);
-            classObj.closeIfElse.Remove(method);
-        }        
-    }
-
-    internal void RemoveEdge(string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            List<string> target_classes = new List<string>();
-            foreach(var target in classObj.connections.Keys) { target_classes.Add(target); }
-            TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
-            targetClassesMenu.ClearOptions();
-            targetClassesMenu.AddOptions(target_classes);
-            removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge from class";
-            removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(name));
-            removeEdgePopUp.SetActive(true);            
-        }
-    }
-
-    internal void removeActionClass(string method, int key, string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            if (!classObj.commandKeys[method][key].Equals("start") || !classObj.commandKeys[method][key].Equals("end")) 
-            { 
-                //!!!!!pozor na repetetivnost nemusi byt ideal do buducna
-                classObj.methodCommands[method].Remove(classObj.commandKeys[method][key]); 
-            }
-            classObj.commandEdges[method].Remove(key);
-            classObj.commandKeys[method].Remove(key);
-            foreach(var command in classObj.commandEdges[method])
-            {
-                if (classObj.commandEdges[method][command.Key].ContainsKey(key))
-                {
-                    classObj.commandEdges[method][command.Key].Remove(key);
-                }
-            }
-        }     
-    }
-
-    internal void removeActionEdge(int key, int targetIndex, string method, string name)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
-        {
-            classObj.commandEdges[method][key].Remove(targetIndex);
-        }
-    }
-
-    private void RemoveEdgeFromGraph(string name)
-    {
-        removeEdgePopUp.SetActive(false);
-        Class_object fromClass = classObjects.Find(obj => obj.name == name);        
-        if (fromClass != null)
-        {
-            TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();            
-            string target_class = targetClassesMenu.options[targetClassesMenu.value].text;
-            if (fromClass.connections.ContainsKey(target_class))
-            {
-                fromClass.connections.Remove(target_class);
-            }            
-            //moze vrzat bo nezda sa mi content slovnikov je to divno
-            if (fromClass.hrany.ContainsKey(target_class))
-            {
-                fromClass.hrany.Remove(target_class);
-            }            
-            if (fromClass.UIedges.ContainsKey(target_class))
-            {
-                Destroy(fromClass.UIedges[target_class]);
-                fromClass.UIedges.Remove(target_class);
-            }            
-        }
-    }
-
-    public void RemoveClass(string className)
-    {
-        Class_object classObj = classObjects.Find(obj => obj.name == className);
-        if(classObj != null)
-        {
-            // remove edges
-            foreach (KeyValuePair<string,GameObject> edges in classObj.UIedges) { Destroy(edges.Value);}
-            classObjects.Remove(classObj);
-            foreach (var claz in classObjects)
-            {
-                if (claz.UIedges.ContainsKey(className)) {
-                    Destroy(claz.UIedges[className]);
-                    claz.UIedges.Remove(className);
-                    claz.connections.Remove(className);
-                }
-            }                       
-        }
-    }
-    
-
-    public void redrawGraph()
-    {
-        foreach (var claz in classObjects)
-        {
-            Destroy(claz.UInode);
-            claz.UInode = null;
-            foreach (KeyValuePair<string, GameObject> edge in claz.UIedges) { Destroy(edge.Value); }
-            claz.UIedges.Clear();
-            claz.hrany.Clear();
-            claz.vrchol = null;
-        }
-
-        StartCoroutine(GenerateUMLDiagram());
-    }
 }

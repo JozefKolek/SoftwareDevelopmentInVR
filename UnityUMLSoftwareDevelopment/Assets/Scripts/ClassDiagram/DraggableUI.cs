@@ -38,7 +38,7 @@ public class DraggableUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         // Notify the UML diagram to update the lines
         if (umlDiagram != null)
         {
-            umlDiagram.UpdateLines();
+            //umlDiagram.UpdateLines();
         }
         if (activity_Diagram != null)
         {

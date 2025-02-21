@@ -113,7 +113,7 @@ public class ClassDrawer : MonoBehaviour
 
     private void AddEdge(string name)
     {
-        umlManager.AddEdge(name);
+        //umlManager.AddEdge(name);
     }
 
     private void AddMethod(string name, GameObject addMetOrAt)
@@ -127,7 +127,7 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.SetActive(false);
         string method = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
-        umlManager.AddMethod(method.Trim(' '), name);
+        //umlManager.AddMethod(method.Trim(' '), name);
     }
 
     private void AddAttribute(string name, GameObject addMetOrAt)
@@ -141,30 +141,30 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.SetActive(false);
         string attribute = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
-        umlManager.AddAttribute(attribute.Trim(' '), name);
+        //umlManager.AddAttribute(attribute.Trim(' '), name);
     }
 
     private void RemoveAttribute(GameObject attributeObj, string attribute, string name)
     {
         Destroy(attributeObj);
-        umlManager.RemoveAttributeFromClass(name, attribute);
+        //umlManager.RemoveAttributeFromClass(name, attribute);
     }
 
     private void RemoveMethod(GameObject methodObj, string method, string name)
     {
         Destroy(methodObj);
-        umlManager.RemoveMethodFromClass(name, method);
+        //umlManager.RemoveMethodFromClass(name, method);
     }
 
     private void RemoveEdge(string name)
     {
-        umlManager.RemoveEdge(name);
+        //umlManager.RemoveEdge(name);
     }
 
     private void RemoveClass(GameObject Klas, string className)
     {
         Destroy(Klas);
-        umlManager.RemoveClass(className);
+        //umlManager.RemoveClass(className);
     }
 
     private void displayActivityDiagram(string method, Class_object classObj)

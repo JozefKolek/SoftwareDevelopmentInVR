@@ -247,7 +247,7 @@ public class UML_activity_diagram : MonoBehaviour
     {
         addClassPopUP.SetActive(false);
         string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;        
-        int index= class_Diagram.AddActivityNode(claz_name,method,clasa.name);
+        //int index= class_Diagram.AddActivityNode(claz_name,method,clasa.name);
         RedrawDiagram();        
     }
 
@@ -294,7 +294,7 @@ public class UML_activity_diagram : MonoBehaviour
             int targetIndex = Int32.Parse(targetClass.Split(" ")[0]);
             if (actionNodes.ContainsKey(targetIndex))
             {                
-                class_Diagram.AddActionEdge(key,targetIndex,method,connection,clasa.name);
+                //class_Diagram.AddActionEdge(key,targetIndex,method,connection,clasa.name);
                 RedrawDiagram();
             }
         }
@@ -314,7 +314,7 @@ public class UML_activity_diagram : MonoBehaviour
         foreach (string hrana in to_remove) { actionEdges.Remove(hrana); }
         if (gruf.ContainsKey(key)) { gruf.Remove(key); }
         if (actionNodes.ContainsKey(key)) { actionNodes.Remove(key); }
-        class_Diagram.removeActionClass(method, key, clasa.name);
+        //class_Diagram.removeActionClass(method, key, clasa.name);
         //RedrawDiagram();
     }
 
@@ -350,7 +350,7 @@ public class UML_activity_diagram : MonoBehaviour
             {
                 Destroy(actionEdges[key + " " + targetIndex]);
                 actionEdges.Remove(key + " " + targetIndex);
-                class_Diagram.removeActionEdge(key, targetIndex, method,clasa.name);
+                //class_Diagram.removeActionEdge(key, targetIndex, method,clasa.name);
             }
         }
     }

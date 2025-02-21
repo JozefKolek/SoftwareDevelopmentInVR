@@ -174,7 +174,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   classDrawer: {fileID: 219966393}
   canvasObj: {fileID: 350704942}
-  linePrefab: {fileID: 6183510564679563791, guid: 80610ceab50844e279f7311427975e19, type: 3}
+  linePrefab: {fileID: 6183510564679563791, guid: 4040142ae8c48a641a7da444de73db37, type: 3}
   buttonPrefab: {fileID: 1401402759860315691, guid: bd6cfe9e004f0ed49b464ca039cb8200, type: 3}
   addClassPrefab: {fileID: 1706788085075885950, guid: 30f06da383bc30b45b40bc592f87105d, type: 3}
   addEdgePrefab: {fileID: 6976362028936240985, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
