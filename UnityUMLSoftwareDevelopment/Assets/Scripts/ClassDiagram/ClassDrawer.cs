@@ -170,7 +170,7 @@ public class ClassDrawer : MonoBehaviour
     private void displayActivityDiagram(string method, Class_object classObj)
     {
         canvasObj.SetActive(false);
-        activity_Diagram.initialise();
-        activity_Diagram.drawDiagram(method, classObj);
+        activity_Diagram.initialise(method, classObj);
+        activity_Diagram.RedrawDiagram();
     }
 }

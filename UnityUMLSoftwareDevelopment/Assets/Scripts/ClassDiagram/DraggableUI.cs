@@ -38,17 +38,18 @@ public class DraggableUI : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         // Notify the UML diagram to update the lines
         if (umlDiagram != null)
         {
-            umlDiagram.UpdateLines();
+            //update nodes positions of class diagram and reroute edges
+            umlDiagram.rerouteGraph();
         }
         if (activity_Diagram != null)
         {
-            activity_Diagram.UpdateLines();
+            activity_Diagram.rerouteGraph();
         }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
         canvasGroup.alpha = 1f;  // Restore full opacity
-        canvasGroup.blocksRaycasts = true;  // Block raycast again
+        canvasGroup.blocksRaycasts = true;  // Block raycast again        
     }
 }

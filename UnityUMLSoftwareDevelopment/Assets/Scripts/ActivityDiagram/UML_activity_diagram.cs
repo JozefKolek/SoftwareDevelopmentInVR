@@ -1,8 +1,11 @@
+using Microsoft.Msagl.Core;
+using Microsoft.Msagl.Core.Geometry;
 using Microsoft.Msagl.Core.Geometry.Curves;
 using Microsoft.Msagl.Core.Layout;
 using Microsoft.Msagl.Core.Routing;
 using Microsoft.Msagl.Layout.Layered;
 using Microsoft.Msagl.Miscellaneous;
+using Radishmouse;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,7 +31,7 @@ public class UML_activity_diagram : MonoBehaviour
     private LayoutAlgorithmSettings settings;
     private Transform units;
 
-    public Dictionary<int, Dictionary<int,string>> gruf = new Dictionary<int, Dictionary<int, string>>();
+    public Dictionary<int, Dictionary<int, string>> gruf = new Dictionary<int, Dictionary<int, string>>();
     public Dictionary<int, GameObject> actionNodes = new Dictionary<int, GameObject>();
     public Dictionary<int, Node> MsaglActionNodes = new Dictionary<int, Node>();
     public Dictionary<string,  GameObject> actionEdges = new Dictionary<string, GameObject>();
@@ -39,32 +42,14 @@ public class UML_activity_diagram : MonoBehaviour
 
     public float factor = 0.2f;
 
-    public void initialise()
+    public void initialise(string method, Class_object classObj)
     {
-        // Initialize geometry graph and layout settings
-        graph = new GeometryGraph();
-        settings = new SugiyamaLayoutSettings
-        {
-            LayerSeparation = 30,
-            NodeSeparation = 20
-        };
-        settings.EdgeRoutingSettings.EdgeRoutingMode = EdgeRoutingMode.Spline;
-
-        // Initialize the Unity transform for the units (node container)
-        units = transform.Find("Units");
-        if (units == null)
-        {
-            units = new GameObject("Units").transform;
-            units.SetParent(transform);
-        }
-        canvasObj.SetActive(true);
+        this.clasa = classObj;
+        this.method = method;
     }
 
-    public void drawDiagram(string method, Class_object clasa)
+    public IEnumerator drawDiagram()
     {
-        this.clasa = clasa;
-        this.method = method;
-        canvasObj.SetActive(true);
         gruf = new Dictionary<int, Dictionary<int, string>>();
         foreach (var comand in clasa.commandEdges) { Debug.Log(comand.Key); }
         foreach (var comand in clasa.commandEdges[method])
@@ -104,7 +89,7 @@ public class UML_activity_diagram : MonoBehaviour
 
         foreach (int name in gruf.Keys)
         {
-            GameObject node = actionNode.DrawAction(clasa.commandKeys[method][name],name);
+            GameObject node = actionNode.DrawAction(clasa.commandKeys[method][name], name);
             actionNodes.Add(name, node);
 
             DraggableUI draggableUI = node.GetComponent<DraggableUI>();
@@ -115,31 +100,27 @@ public class UML_activity_diagram : MonoBehaviour
 
             //msagl part
             RectTransform rectTransform = node.GetComponent<RectTransform>();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
             float width = rectTransform.rect.width;
             float height = rectTransform.rect.height;
-
+            
             // Set the initial center based on Unity's anchored position
-            Vector2 anchoredPosition = rectTransform.anchoredPosition;
-            var initialCenter = new Microsoft.Msagl.Core.Geometry.Point(anchoredPosition.x, anchoredPosition.y);
-            Node msaglNode = new Node(CurveFactory.CreateRectangle(width, height, initialCenter));
-            msaglNode.UserData = node;
-
-            if (msaglNode != null)
+            Node msaglNode = new Node
             {
-                graph.Nodes.Add(msaglNode);
-            }
+                BoundaryCurve = CurveFactory.CreateRectangle(width / factor, height / factor, new Point()),
+                UserData = node
+            };
+            msaglNode.UserData = node.name;
+
             MsaglActionNodes.Add(name, msaglNode);
             graph.Nodes.Add(msaglNode);
-
         }
-        // Adjust panel layout (spacing out panels)
-        PositionPanels();
 
-        foreach(var from in gruf)
+        //add edges to msagl part
+        foreach (var from in gruf)
         {
             foreach (var to in from.Value)
             {                
-                DrawConnectionLine(actionNodes[from.Key].transform, actionNodes[to.Key].transform, from.Key, to.Key);
                 Edge msaglHrana = new Edge(MsaglActionNodes[from.Key], MsaglActionNodes[to.Key]);
                 MsaglActionEdges.Add(from.Key + " " + to.Key, msaglHrana);
                 graph.Edges.Add(msaglHrana);
@@ -147,69 +128,99 @@ public class UML_activity_diagram : MonoBehaviour
         }
 
         LayoutHelpers.CalculateLayout(graph, settings, null);
-        float canvasWidth = canvasObj.GetComponent<RectTransform>().rect.width / 2;
-        float canvasHeight = canvasObj.GetComponent<RectTransform>().rect.height / 2;
 
         foreach (KeyValuePair<int, Node> kvp in MsaglActionNodes)
-        {
+        {            
             Node msaglNode = kvp.Value;
-
-            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor, (float)msaglNode.Center.Y * factor);
-
-            // Clamp the position to keep within canvas bounds
-            newPosition.x = Mathf.Clamp(newPosition.x, -canvasWidth + 150, canvasWidth - 150);
-            newPosition.y = Mathf.Clamp(newPosition.y, -canvasHeight + 150, canvasHeight - 150);
-
+            Vector2 newPosition = new Vector2((float)msaglNode.Center.X * factor - 425, (float)msaglNode.Center.Y * factor - 540);
             RectTransform rectTransform = actionNodes[kvp.Key].GetComponent<RectTransform>();
             rectTransform.anchoredPosition = newPosition;
         }
+
+        foreach(KeyValuePair<string,Edge> edge in MsaglActionEdges)
+        {
+            DrawConnectionLine(edge.Key);
+
+        }
+
+        yield return null;
+        yield return null;
+        yield return null;
     }
 
-    private void DrawConnectionLine(Transform startTransform, Transform endTransform, int from, int to)
+    private void DrawConnectionLine(string edgeFromTo)
     {
         // Instantiate the line prefab
         GameObject lineInstance = Instantiate(linePrefab, canvasObj.transform);
-
-        // Initialize the line between start and end transforms
-        LineUpdater lineUpdater = lineInstance.GetComponent<LineUpdater>();
-        lineUpdater.Initialize(actionNodes[from], actionNodes[to]);
-
+        lineInstance.GetComponent<Transform>().position = new Vector3(0, 0, 0);
+        lineInstance.name = "Edge_" + edgeFromTo;
+        
         // Optionally, store the line in the startClass's UIedges dictionary
-        actionEdges[from + " " + to] = lineInstance;
+        actionEdges.Add(edgeFromTo,lineInstance);
 
-        Vector3 start = lineUpdater.GetClosestEdgePosition(startTransform, endTransform.position);
-        Vector3 end = lineUpdater.GetClosestEdgePosition(endTransform, endTransform.position);
-        lineUpdater.SetLinePositions(start, end);
-    }
+        UILineRenderer lineRenderer = lineInstance.GetComponent<UILineRenderer>();
 
-    private void PositionPanels()
-    {
-        float offsetX = 250f;  // Adjust spacing between panels horizontally
-        float offsetY = -150f; // Adjust spacing between panels vertically
-        int index = 0;
+        Edge msaglEdge = MsaglActionEdges[edgeFromTo];
+        List<Vector3> points = new List<Vector3>();
+        Curve curve = msaglEdge.Curve as Curve;
 
-        foreach (KeyValuePair<int, GameObject> node in actionNodes)
+        if (curve != null)
         {
-            if (node.Value != null)
+            // Add the start point
+            Point p = curve[curve.ParStart];
+            points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+
+            // Add the intermediate points
+            foreach (ICurve seg in curve.Segments)
             {
-                RectTransform rectTransform = node.Value.GetComponent<RectTransform>();
-                rectTransform.anchoredPosition = new Vector2(offsetX * (index % 5), offsetY * (index / 5));
-                index++;
+                p = seg[seg.ParEnd];
+                points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
             }
         }
-    }
-
-    public void UpdateLines()
-    {
-        foreach (KeyValuePair<string, GameObject> hrana in actionEdges)
+        else
         {
-            var lineUpdater = hrana.Value.GetComponent<LineUpdater>();
-            if (lineUpdater != null)
+            // Handle the case where the curve is a line segment
+            LineSegment ls = msaglEdge.Curve as LineSegment;
+            if (ls != null)
             {
-                lineUpdater.UpdateLinePositions();
+                Point p = ls.Start;
+                points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+                p = ls.End;
+                points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
             }
         }
-    }   
+        foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + edgeFromTo + " ma parametre: " + i.x + " " + i.y); }
+        lineRenderer.points = points.ToArray();
+    }
+
+    public void RedrawDiagram()
+    {
+        canvasObj.SetActive(true);
+
+        //intialize msagl graph part
+        // Initialize geometry graph and layout settings
+        graph = new GeometryGraph();
+        settings = new SugiyamaLayoutSettings
+        {
+            LayerSeparation = 50,
+            NodeSeparation = 50,
+            EdgeRoutingSettings = new EdgeRoutingSettings
+            {
+                EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter, // Change to Rectilinear for orthogonal edges
+                PolylinePadding = 5, // Add padding to ensure space around edges
+                CornerRadius = 10 // Add corner radius for smoother bends
+            }
+        };
+
+        //Destroy activity nodes and edges on canvas
+        foreach (KeyValuePair<int, GameObject> vrchol in actionNodes) { Destroy(vrchol.Value); }
+        foreach (KeyValuePair<string, GameObject> hrana in actionEdges) { Destroy(hrana.Value); }
+        actionEdges.Clear();
+        actionNodes.Clear();
+        MsaglActionEdges.Clear();
+        MsaglActionNodes.Clear();
+        StartCoroutine(drawDiagram());
+    }
 
     private void CloseActivityDiagram()
     {
@@ -224,18 +235,7 @@ public class UML_activity_diagram : MonoBehaviour
         ClassCanvasObj.SetActive(true);
     }
 
-    private void RedrawDiagram()
-    {
-        gruf.Clear();
-        foreach (KeyValuePair<int, GameObject> vrchol in actionNodes) { Destroy(vrchol.Value); }
-        foreach (KeyValuePair<string, GameObject> hrana in actionEdges) { Destroy(hrana.Value); }
-        actionEdges.Clear();
-        actionNodes.Clear();
-        MsaglActionEdges.Clear();
-        MsaglActionNodes.Clear();
-        drawDiagram(method, clasa);
-    }
-
+    //Add Node
     private void AddClass()
     {
         addClassPopUP.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add Action to Activity";
@@ -246,11 +246,12 @@ public class UML_activity_diagram : MonoBehaviour
     private void AddClassToGraph()
     {
         addClassPopUP.SetActive(false);
-        string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;        
-        int index= class_Diagram.AddActivityNode(claz_name,method,clasa.name);
-        RedrawDiagram();        
+        string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;
+        int index = class_Diagram.AddActivityNode(claz_name, method, clasa.name);
+        RedrawDiagram();
     }
 
+    //Add Edge
     internal void addEdge(int key)
     {
         addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to action node";
@@ -282,7 +283,6 @@ public class UML_activity_diagram : MonoBehaviour
 
     }
 
-
     private void AddEdgeToGraph(int key)
     {
         addEdgePopUp.SetActive(false);
@@ -293,12 +293,14 @@ public class UML_activity_diagram : MonoBehaviour
             string connection = dropdowns[1].options[dropdowns[1].value].text;
             int targetIndex = Int32.Parse(targetClass.Split(" ")[0]);
             if (actionNodes.ContainsKey(targetIndex))
-            {                
-                class_Diagram.AddActionEdge(key,targetIndex,method,connection,clasa.name);
+            {
+                class_Diagram.AddActionEdge(key, targetIndex, method, connection, clasa.name);
                 RedrawDiagram();
             }
         }
     }
+
+    //remove Node
     internal void removeActionClass(int key)
     {
         List<string> to_remove = new List<string>();
@@ -315,9 +317,9 @@ public class UML_activity_diagram : MonoBehaviour
         if (gruf.ContainsKey(key)) { gruf.Remove(key); }
         if (actionNodes.ContainsKey(key)) { actionNodes.Remove(key); }
         class_Diagram.removeActionClass(method, key, clasa.name);
-        //RedrawDiagram();
+        RedrawDiagram();
     }
-
+    //remove Edge
     internal void removeEdge(int key)
     {
         if (gruf.ContainsKey(key))
@@ -350,8 +352,62 @@ public class UML_activity_diagram : MonoBehaviour
             {
                 Destroy(actionEdges[key + " " + targetIndex]);
                 actionEdges.Remove(key + " " + targetIndex);
-                class_Diagram.removeActionEdge(key, targetIndex, method,clasa.name);
+                class_Diagram.removeActionEdge(key, targetIndex, method, clasa.name);
+                RedrawDiagram();
             }
         }
+    }
+
+    //after drag and drop reroute edges and nodes in msagl
+    public void rerouteGraph()
+    {
+        foreach (KeyValuePair<int,GameObject> node in actionNodes)
+        {
+            Vector2 anchoredPosition = node.Value.GetComponent<RectTransform>().anchoredPosition;
+            Node msaglNode = MsaglActionNodes[node.Key];
+            msaglNode.Center = new Point((anchoredPosition.x + 425) / factor, (anchoredPosition.y + 540) / factor);
+        }
+        LayoutHelpers.RouteAndLabelEdges(graph, settings, graph.Edges, 0, new CancelToken());
+        
+        foreach (KeyValuePair<string, Edge> hrana in MsaglActionEdges)
+        {
+            GameObject line = actionEdges[hrana.Key];
+
+            UILineRenderer lineRenderer = line.GetComponent<UILineRenderer>();
+
+            Edge msaglEdge = hrana.Value;
+            List<Vector3> points = new List<Vector3>();
+            Curve curve = msaglEdge.Curve as Curve;
+
+            if (curve != null)
+            {
+                // Add the start point
+                Point p = curve[curve.ParStart];
+                points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+
+                // Add the intermediate points
+                foreach (ICurve seg in curve.Segments)
+                {
+                    p = seg[seg.ParEnd];
+                    points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+                }
+            }
+            else
+            {
+                // Handle the case where the curve is a line segment
+                LineSegment ls = msaglEdge.Curve as LineSegment;
+                if (ls != null)
+                {
+                    Point p = ls.Start;
+                    points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+                    p = ls.End;
+                    points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
+                }
+            }
+            foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + hrana.Key + " ma parametre: " + i.x + " " + i.y); }
+            lineRenderer.points = points.ToArray();
+            lineRenderer.SetVerticesDirty();
+            lineRenderer.Rebuild(CanvasUpdate.PreRender);
+        }        
     }
 }
