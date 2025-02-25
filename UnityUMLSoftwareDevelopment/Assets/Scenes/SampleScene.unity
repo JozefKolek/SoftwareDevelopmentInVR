@@ -226,14 +226,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d25f944a3d6a7714bb1c30443f993b77, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainPanelPrefab: {fileID: 8707955838800557481, guid: 747fe23e2624a4112bc7c10d70e46039, type: 3}
-  namePrefab: {fileID: 3869373572752467795, guid: d79d826fef0654f41b9c2c4d8bd1d3eb, type: 3}
-  attributePrefab: {fileID: 6959544376398874173, guid: 131c891af339441b0b64265351332672, type: 3}
-  methodPrefab: {fileID: 6959544376398874173, guid: 131c891af339441b0b64265351332672, type: 3}
+  mainPanelPrefab: {fileID: 2895090128927813911, guid: 5bf5f44b90e75044087da4af7b545e3c, type: 3}
+  namePrefab: {fileID: 6701713178405130990, guid: 22295538f28c4ab419db8e9daa86fe5b, type: 3}
+  attributePrefab: {fileID: 6334394106270136301, guid: d37fa6e3575e6e34ea4a819728cb1707, type: 3}
+  methodPrefab: {fileID: 6334394106270136301, guid: d37fa6e3575e6e34ea4a819728cb1707, type: 3}
   canvasObj: {fileID: 350704939}
-  buttonPrefab: {fileID: 2862224318103034082, guid: 9e83b55d9f698a4439bec8ee8ce15e1e, type: 3}
+  buttonPrefab: {fileID: 6667463033910681331, guid: 1c00fcf19dfb0be47902ec9fb500d05b, type: 3}
   addMetOrAt: {fileID: 1706788085075885950, guid: 30f06da383bc30b45b40bc592f87105d, type: 3}
-  atOrMetContainerPrefab: {fileID: 7923915980717878097, guid: b8c0a69b2a4aebf4bb5d61d47b3f8846, type: 3}
+  atOrMetContainerPrefab: {fileID: 7316997057737650668, guid: 331af5d0fd54b7343b530f0fe1fb5015, type: 3}
   umlManager: {fileID: 166456045}
   activity_Diagram: {fileID: 1121405491}
 --- !u!114 &219966395
@@ -879,8 +879,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canvasObj: {fileID: 1796077229}
   ClassCanvasObj: {fileID: 350704939}
-  linePrefab: {fileID: 6183510564679563791, guid: 80610ceab50844e279f7311427975e19, type: 3}
-  buttonPrefab: {fileID: 1401402759860315691, guid: bd6cfe9e004f0ed49b464ca039cb8200, type: 3}
+  linePrefab: {fileID: 6183510564679563791, guid: 4040142ae8c48a641a7da444de73db37, type: 3}
+  buttonPrefab: {fileID: 6667463033910681331, guid: 1c00fcf19dfb0be47902ec9fb500d05b, type: 3}
   actionNode: {fileID: 2119618641}
   addClassPrefab: {fileID: 1706788085075885950, guid: 30f06da383bc30b45b40bc592f87105d, type: 3}
   addEdgePrefab: {fileID: 6976362028936240985, guid: 05bff2bb26a310e428ab8b15a3a68cd8, type: 3}
@@ -1332,8 +1332,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a0f23e7f0d653f4182f29ab3727bb62, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  actionPanelPrefab: {fileID: 8707955838800557481, guid: 747fe23e2624a4112bc7c10d70e46039, type: 3}
+  actionPanelPrefab: {fileID: 2895090128927813911, guid: 5bf5f44b90e75044087da4af7b545e3c, type: 3}
   canvasObj: {fileID: 1796077229}
-  buttonPrefab: {fileID: 1401402759860315691, guid: bd6cfe9e004f0ed49b464ca039cb8200, type: 3}
-  namePrefab: {fileID: 6959544376398874173, guid: 131c891af339441b0b64265351332672, type: 3}
+  buttonPrefab: {fileID: 6667463033910681331, guid: 1c00fcf19dfb0be47902ec9fb500d05b, type: 3}
+  namePrefab: {fileID: 6334394106270136301, guid: d37fa6e3575e6e34ea4a819728cb1707, type: 3}
   activityManager: {fileID: 1121405491}
