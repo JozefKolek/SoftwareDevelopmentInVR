@@ -27,6 +27,8 @@ public class UML_class_diagram : MonoBehaviour
     public GameObject addEdgePrefab;
     public GameObject removeEdgePrefab;
     public GameObject activityCanvasObj;
+    public GameObject compileCanvasObj;
+    public GenerateCode generateCode;
     private GameObject addEdgePopUp;
     private GameObject removeEdgePopUp;
     private GameObject arrowHead;
@@ -40,6 +42,7 @@ public class UML_class_diagram : MonoBehaviour
     private void Start()
     {
         activityCanvasObj.SetActive(false);
+        compileCanvasObj.SetActive(false);
         classObjects = read.read_from_code();
         redrawGraph();
     }
@@ -62,17 +65,17 @@ public class UML_class_diagram : MonoBehaviour
         AddClassButton.GetComponent<Image>().color = Color.yellow;
 
         RectTransform addClassForm = AddClassButton.transform.GetComponent<RectTransform>();
-        addClassForm.localPosition = new Vector3(-275, 210, 0);
+        addClassForm.localPosition = new Vector3(-600, 400, 0);
         addClassForm.sizeDelta = new Vector2(150, 60);
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
         GameObject GenerateCodeButton = Instantiate(buttonPrefab, canvasObj.transform);
-        GenerateCode generator = new GenerateCode(classObjects, canvasObj);
-        GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generator.generateCode());
+        generateCode.initialise(classObjects, canvasObj);
+        GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.generateCode());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
 
         RectTransform GenerateCodeForm = GenerateCodeButton.GetComponent<RectTransform>();
-        GenerateCodeForm.localPosition = new Vector3(-275, 150, 0);
+        GenerateCodeForm.localPosition = new Vector3(-600, 340, 0);
         addClassForm.sizeDelta = new Vector2(150, 60);
         GenerateCodeButton.GetComponentInChildren<TextMeshProUGUI>().text = "Generate code";
 
@@ -106,7 +109,6 @@ public class UML_class_diagram : MonoBehaviour
             msaglNode.UserData = classObj.name;
             graph.Nodes.Add(msaglNode);
             classObj.vrchol = msaglNode;
-            Debug.Log(classObj.name + ": " + msaglNode.Center.X + " " + msaglNode.Center.Y);
         }
 
         //pridanie hran do msagl
@@ -138,7 +140,6 @@ public class UML_class_diagram : MonoBehaviour
             // Apply the clamped position to the UI node
             RectTransform rectTransform = kvp.UInode.GetComponent<RectTransform>();
             rectTransform.anchoredPosition = newPosition;
-            Debug.Log($"Node {kvp.name} - Unity Position: {newPosition.x}, {newPosition.y}");
         }
 
         //DrawConnectionLine edges based on msagl results
@@ -199,7 +200,6 @@ public class UML_class_diagram : MonoBehaviour
                 points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
             }            
         }
-        foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + startClass.name + " do " + endClass.name + " ma parametre: " + i.x + " " + i.y); }
         lineRenderer.points = points.ToArray();
 
         // Vytvorenie trojuholníkovej šípky
@@ -498,7 +498,6 @@ public class UML_class_diagram : MonoBehaviour
         {            
             Vector2 anchoredPosition = claz.UInode.GetComponent<RectTransform>().anchoredPosition;
             Node msaglNode = claz.vrchol;
-            Debug.Log("Reroute robim " + claz.name + ": " + anchoredPosition.x + " " + anchoredPosition.y);
             msaglNode.Center = new Point((anchoredPosition.x + 425) / factor, (anchoredPosition.y+ 540)/ factor);
         }
         LayoutHelpers.RouteAndLabelEdges(graph, settings, graph.Edges,0, new CancelToken());
@@ -539,7 +538,6 @@ public class UML_class_diagram : MonoBehaviour
                         points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
                     }
                 }
-                foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + claz.name + " do " + hrana.Key + " ma parametre: " + i.x + " " + i.y); }
                 lineRenderer.points = points.ToArray();
                 lineRenderer.SetVerticesDirty();
                 lineRenderer.Rebuild(CanvasUpdate.PreRender);

@@ -51,7 +51,6 @@ public class UML_activity_diagram : MonoBehaviour
     public IEnumerator drawDiagram()
     {
         gruf = new Dictionary<int, Dictionary<int, string>>();
-        foreach (var comand in clasa.commandEdges) { Debug.Log(comand.Key); }
         foreach (var comand in clasa.commandEdges[method])
         {
             gruf.Add(comand.Key, new Dictionary<int, string>());
@@ -60,7 +59,7 @@ public class UML_activity_diagram : MonoBehaviour
                 gruf[comand.Key].Add(to.Key, to.Value);
             }
         }
-
+      
         addClassPopUP = Instantiate(addClassPrefab, canvasObj.transform);
         addClassPopUP.SetActive(false);
         addEdgePopUp = Instantiate(addEdgePrefab, canvasObj.transform);
@@ -189,7 +188,6 @@ public class UML_activity_diagram : MonoBehaviour
                 points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
             }
         }
-        foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + edgeFromTo + " ma parametre: " + i.x + " " + i.y); }
         lineRenderer.points = points.ToArray();
     }
 
@@ -404,7 +402,6 @@ public class UML_activity_diagram : MonoBehaviour
                     points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
                 }
             }
-            foreach (var i in points) { Debug.Log("Suradnice pre hranu z " + hrana.Key + " ma parametre: " + i.x + " " + i.y); }
             lineRenderer.points = points.ToArray();
             lineRenderer.SetVerticesDirty();
             lineRenderer.Rebuild(CanvasUpdate.PreRender);
