@@ -12,11 +12,12 @@ public class Action_node_drawer : MonoBehaviour
     public GameObject buttonPrefab;
     public GameObject namePrefab;
     public UML_activity_diagram activityManager;
+    public GameObject content;
 
     internal GameObject DrawAction(string name,int index)
     {
         int key = index;
-        GameObject node = Instantiate(actionPanelPrefab, Vector3.zero, Quaternion.identity, canvasObj.transform);
+        GameObject node = Instantiate(actionPanelPrefab, Vector3.zero, Quaternion.identity, content.transform);
         node.name = name;
         //set Action name
         GameObject action = Instantiate(namePrefab, Vector3.zero, Quaternion.identity, node.transform);

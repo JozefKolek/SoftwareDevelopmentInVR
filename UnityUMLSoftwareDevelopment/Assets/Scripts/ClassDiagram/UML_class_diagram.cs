@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using Microsoft.Msagl.Miscellaneous;
 using Microsoft.Msagl.Core.Layout;
@@ -29,6 +29,11 @@ public class UML_class_diagram : MonoBehaviour
     public GameObject activityCanvasObj;
     public GameObject compileCanvasObj;
     public GenerateCode generateCode;
+    public GameObject content;
+    public Sprite empyArrow;
+    public Sprite emptyDiamond;
+    public Sprite fullArrow;
+    public Sprite fullDiamond;
     private GameObject addEdgePopUp;
     private GameObject removeEdgePopUp;
     private GameObject arrowHead;
@@ -38,29 +43,42 @@ public class UML_class_diagram : MonoBehaviour
     private GeometryGraph graph;
     private LayoutAlgorithmSettings settings;
     private Transform units;
-
+    private Vector2 lastPosition;
+    private ScrollRect scrollRect;
     private void Start()
     {
         activityCanvasObj.SetActive(false);
         compileCanvasObj.SetActive(false);
         classObjects = read.read_from_code();
-        redrawGraph();
+        redrawGraph();        
+        lastPosition = content.GetComponent<RectTransform>().anchoredPosition;
+        scrollRect = content.transform.parent.gameObject.GetComponent<ScrollRect>();
+        if (scrollRect!= null) { scrollRect.onValueChanged.AddListener(OnScroll); }
     }
 
+    private void OnScroll (Vector2 scrollPosition)
+    {
+        if (lastPosition != content.GetComponent<RectTransform>().anchoredPosition)
+        {
+            lastPosition = content.GetComponent<RectTransform>().anchoredPosition;
+            rerouteGraph();
+        }
+    }
+    
     public IEnumerator GenerateUMLDiagram()
     {
-        GameObject AddClassPopUp = Instantiate(addClassPrefab, canvasObj.transform);
-        addEdgePopUp = Instantiate(addEdgePrefab, canvasObj.transform);
-        removeEdgePopUp = Instantiate(removeEdgePrefab, canvasObj.transform);
+        GameObject AddClassPopUp = Instantiate(addClassPrefab, content.transform);
+        addEdgePopUp = Instantiate(addEdgePrefab, content.transform);
+        removeEdgePopUp = Instantiate(removeEdgePrefab, content.transform);
 
         AddClassPopUp.SetActive(false);
         addEdgePopUp.SetActive(false);
         removeEdgePopUp.SetActive(false);
         TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
         dropdowns[1].ClearOptions();
-        dropdowns[1].AddOptions(new List<string> { "generalization", "agregation", "composition", "dependency", "realisation" });
+        dropdowns[1].AddOptions(new List<string> { "Generalisation", "Realisation", "Composition", "Aggregation", "Dependency", "Asociation" });
 
-        GameObject AddClassButton = Instantiate(buttonPrefab, canvasObj.transform);
+        GameObject AddClassButton = Instantiate(buttonPrefab, content.transform);
         AddClassButton.GetComponent<Button>().onClick.AddListener(() => AddClass(AddClassPopUp));
         AddClassButton.GetComponent<Image>().color = Color.yellow;
 
@@ -69,7 +87,7 @@ public class UML_class_diagram : MonoBehaviour
         addClassForm.sizeDelta = new Vector2(150, 60);
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
-        GameObject GenerateCodeButton = Instantiate(buttonPrefab, canvasObj.transform);
+        GameObject GenerateCodeButton = Instantiate(buttonPrefab, content.transform);
         generateCode.initialise(classObjects, canvasObj);
         GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.generateCode());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
@@ -164,7 +182,7 @@ public class UML_class_diagram : MonoBehaviour
     private void DrawConnectionLine(Transform startTransform, Transform endTransform, Class_object startClass, Class_object endClass)
     {
         // Instantiate the line prefab
-        GameObject lineInstance = Instantiate(linePrefab, canvasObj.transform);
+        GameObject lineInstance = Instantiate(linePrefab, content.transform);
         lineInstance.GetComponent<Transform>().position = new Vector3(0,0,0);
         lineInstance.name = "Edge_" + startClass.name + "_" + endClass.name;
         startClass.UIedges.Add(endClass.name, lineInstance);
@@ -201,34 +219,56 @@ public class UML_class_diagram : MonoBehaviour
             }            
         }
         lineRenderer.points = points.ToArray();
+        
+        Image image = lineInstance.GetComponentInChildren<Image>();
+        RectTransform rectTransform = lineInstance.transform.Find("ArrowType").gameObject.GetComponent<RectTransform>();
 
-        // Vytvorenie trojuholn�kovej ��pky
-        if(startClass.connections.ContainsKey(endClass.name))
+        float posx = points[points.Count - 1].x - (float)47.8;
+        float posy = points[points.Count - 1].y - (float)49.61;
+        rectTransform.anchoredPosition = new Vector2(posx,posy);
+        
+        if (lineRenderer.points[points.Count - 2].x > lineRenderer.points[points.Count - 1].x) { rectTransform.rotation = Quaternion.Euler(0, 0, 90); }
+        else if (lineRenderer.points[points.Count - 1].x > lineRenderer.points[points.Count - 2].x) { rectTransform.transform.rotation = Quaternion.Euler(0, 0, -90); }
+        else if (lineRenderer.points[points.Count - 2].y > lineRenderer.points[points.Count - 1].y) { rectTransform.rotation = Quaternion.Euler(0, 0, -180); }
+        else if (lineRenderer.points[points.Count - 1].y > lineRenderer.points[points.Count - 2].y) { rectTransform.transform.rotation = Quaternion.Euler(0, 0, 0); }
+
+        // Priradenie šípky podľa typu
+        if (startClass.connections.ContainsKey(endClass.name))
         {
             if (startClass.connections[endClass.name].Equals("Generalisation"))
             {
                 lineRenderer.color = Color.black;
-            } else if (startClass.connections[endClass.name].Equals("Realisation"))
+                image.sprite = fullArrow;
+            }
+            else if (startClass.connections[endClass.name].Equals("Realisation"))
             {
                 lineRenderer.color = Color.red;
-            } else if (startClass.connections[endClass.name].Equals("Composition"))
+                image.sprite = fullArrow;
+            }
+            else if (startClass.connections[endClass.name].Equals("Composition"))
             {
                 lineRenderer.color = Color.green;
-            } else if (startClass.connections[endClass.name].Equals("Aggregation"))
+                image.sprite = fullDiamond;
+            }
+            else if (startClass.connections[endClass.name].Equals("Aggregation"))
             {
                 lineRenderer.color = Color.blue;
+                image.sprite = emptyDiamond;
             }
             else if (startClass.connections[endClass.name].Equals("Dependency"))
             {
                 lineRenderer.color = Color.yellow;
+                image.sprite = empyArrow;
+            } else if (startClass.connections[endClass.name].Equals("Asociation"))
+            {
+                Destroy(lineInstance.transform.Find("ArrowType").gameObject);
             }            
-        }        
+        }
+
     }
 
     public void redrawGraph()
     {
-        //intialize msagl graph part
-        // Initialize geometry graph and layout settings
         graph = new GeometryGraph();
         settings = new SugiyamaLayoutSettings
         {
@@ -236,14 +276,13 @@ public class UML_class_diagram : MonoBehaviour
             NodeSeparation = 50,
             EdgeRoutingSettings = new EdgeRoutingSettings
             {
-                EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter, // Change to Rectilinear for orthogonal edges
-                PolylinePadding = 5, // Add padding to ensure space around edges
-                CornerRadius = 10 // Add corner radius for smoother bends
+                EdgeRoutingMode = EdgeRoutingMode.RectilinearToCenter,
+                PolylinePadding = 5,
+                CornerRadius = 10
             }
         };
 
-        
-        //remove all nodes and edges from canvas 
+        // Odstránenie starých uzlov a čiar
         foreach (var claz in classObjects)
         {
             Destroy(claz.UInode);
@@ -254,8 +293,10 @@ public class UML_class_diagram : MonoBehaviour
             claz.vrchol = null;
         }
 
-        StartCoroutine(GenerateUMLDiagram());
+        Canvas.ForceUpdateCanvases();
+        StartCoroutine(GenerateUMLDiagram());        
     }
+
 
     //add class to class diagram
     private void AddClass(GameObject addClassPopUp)
@@ -281,17 +322,23 @@ public class UML_class_diagram : MonoBehaviour
     {
         addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to class";
         List<string> classes = new List<string>();
-        foreach (var claz in classObjects) { if (!claz.name.Equals(name)) { classes.Add(claz.name); } }
-        Class_object classObj = classObjects.Find(obj => obj.name == name);
-        if (classObj != null)
+        foreach (var claz in classObjects) { if (!claz.name.Equals(name)) { classes.Add(claz.name); } }        
+        foreach (var claz in classObjects)
         {
-            foreach (var targetClass in classObj.connections.Keys) { classes.Remove(targetClass); }
-        }
+            if (claz.name.Equals(name))
+            {
+                foreach(var targetClass in claz.connections.Keys) { classes.Remove(targetClass); }
+            }
+            else if (!claz.name.Equals(name) && claz.connections.ContainsKey(name) && classes.Contains(claz.name))
+            {
+                classes.Remove(claz.name);
+            }
+        }        
         TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
         dropdowns[0].ClearOptions();
         dropdowns[0].AddOptions(classes);
 
-        addEdgePopUp.SetActive(true);
+        if (classes.Count != 0) { addEdgePopUp.SetActive(true);}        
         addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(name));
     }
 
@@ -304,8 +351,11 @@ public class UML_class_diagram : MonoBehaviour
             TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
             string targetClass = dropdowns[0].options[dropdowns[0].value].text;
             string connection = dropdowns[1].options[dropdowns[1].value].text;
-            if (!classObj.connections.ContainsKey(targetClass)) { classObj.connections.Add(targetClass, connection); }
-            redrawGraph();
+            if (!classObj.connections.ContainsKey(targetClass))
+            {
+                classObj.connections.Add(targetClass, connection);
+                redrawGraph();
+            }            
         }
     }
 
@@ -326,7 +376,8 @@ public class UML_class_diagram : MonoBehaviour
 
             classObj.commandEdges[method].Add(1, new Dictionary<int, string>());
             classObj.commandEdges[method].Add(0, new Dictionary<int, string>());
-            redrawGraph();
+
+            redrawNode(classObj);
         }
     }
 
@@ -337,7 +388,7 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.attributes.Add(attribute);
-            redrawGraph();
+            redrawNode(classObj);
         }
     }
 
@@ -352,7 +403,7 @@ public class UML_class_diagram : MonoBehaviour
             classObj.commandKeys.Remove(method);
             classObj.commandEdges.Remove(method);
             classObj.closeIfElse.Remove(method);
-            redrawGraph();
+            redrawNode(classObj);
         }        
     }
 
@@ -363,7 +414,7 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.attributes.Remove(attribute);
-            redrawGraph();
+            redrawNode(classObj);
         }        
     }
 
@@ -380,7 +431,7 @@ public class UML_class_diagram : MonoBehaviour
             targetClassesMenu.AddOptions(target_classes);
             removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge from class";
             removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(name));
-            removeEdgePopUp.SetActive(true);
+            if (target_classes.Count > 0) { removeEdgePopUp.SetActive(true);}
         }
     }
 
@@ -491,17 +542,36 @@ public class UML_class_diagram : MonoBehaviour
         }
     }
 
+    internal void redrawNode(Class_object classObj)
+    {
+        GameObject redrawedNode = classDrawer.CreateClassPanel(classObj);
+        RectTransform rectTransform = redrawedNode.GetComponent<RectTransform>();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+        rectTransform.anchoredPosition = classObj.UInode.GetComponent<RectTransform>().anchoredPosition;
+        DraggableUI draggableUI = redrawedNode.GetComponent<DraggableUI>();
+        if (draggableUI != null)
+        {
+            draggableUI.umlDiagram = this; // Set the UML diagram reference
+        }
+        Destroy(classObj.UInode);
+        classObj.UInode = redrawedNode;
+        rerouteGraph();
+    }
     //reroute graph dragableUI part
     internal void rerouteGraph()
     {
         foreach(Class_object claz in classObjects)
-        {            
+        {                        
             Vector2 anchoredPosition = claz.UInode.GetComponent<RectTransform>().anchoredPosition;
+            RectTransform rectTransform = claz.UInode.GetComponent<RectTransform>();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
             Node msaglNode = claz.vrchol;
-            msaglNode.Center = new Point((anchoredPosition.x + 425) / factor, (anchoredPosition.y+ 540)/ factor);
+            msaglNode.BoundaryCurve = CurveFactory.CreateRectangle(rectTransform.rect.width / factor, rectTransform.rect.height / factor, new Point((anchoredPosition.x + 425) / factor, (anchoredPosition.y + 540) / factor));
+            
         }
         LayoutHelpers.RouteAndLabelEdges(graph, settings, graph.Edges,0, new CancelToken());
-        foreach(Class_object claz in classObjects)
+        
+        foreach (Class_object claz in classObjects)
         {
             foreach(KeyValuePair<string,Edge> hrana in claz.hrany)
             {
@@ -541,6 +611,20 @@ public class UML_class_diagram : MonoBehaviour
                 lineRenderer.points = points.ToArray();
                 lineRenderer.SetVerticesDirty();
                 lineRenderer.Rebuild(CanvasUpdate.PreRender);
+
+                try
+                {
+                    RectTransform rectTransform =  line.transform.Find("ArrowType").GetComponent<RectTransform>();
+
+                    float posx = points[points.Count - 1].x - (float)47.8;
+                    float posy = points[points.Count - 1].y - (float)49.61;
+                    rectTransform.anchoredPosition = new Vector2(posx, posy);
+
+                    if (lineRenderer.points[points.Count - 2].x > lineRenderer.points[points.Count - 1].x) { rectTransform.rotation = Quaternion.Euler(0, 0, 90); }
+                    else if (lineRenderer.points[points.Count - 1].x > lineRenderer.points[points.Count - 2].x) { rectTransform.transform.rotation = Quaternion.Euler(0, 0, -90); }
+                    else if (lineRenderer.points[points.Count - 2].y > lineRenderer.points[points.Count - 1].y) { rectTransform.rotation = Quaternion.Euler(0, 0, -180); }
+                    else if (lineRenderer.points[points.Count - 1].y > lineRenderer.points[points.Count - 2].y) { rectTransform.transform.rotation = Quaternion.Euler(0, 0, 0); }
+                } catch{}
             }
         }
     }

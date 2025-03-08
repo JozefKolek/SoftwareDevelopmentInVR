@@ -14,6 +14,7 @@ public class ClassDrawer : MonoBehaviour
     public GameObject buttonPrefab;
     public GameObject addMetOrAt;
     public GameObject atOrMetContainerPrefab;
+    public GameObject content;
 
     public UML_class_diagram umlManager;
     public UML_activity_diagram activity_Diagram;
@@ -22,8 +23,8 @@ public class ClassDrawer : MonoBehaviour
     // Creates a panel for a single Class_object instance
     public GameObject CreateClassPanel(Class_object classObj)
     {
-        GameObject mainPanel = Instantiate(mainPanelPrefab, Vector3.zero, Quaternion.identity, canvasObj.transform);
-        GameObject addMethodOrClass = Instantiate(addMetOrAt, canvasObj.transform);
+        GameObject mainPanel = Instantiate(mainPanelPrefab, Vector3.zero, Quaternion.identity, content.transform);
+        GameObject addMethodOrClass = Instantiate(addMetOrAt, content.transform);
 
         addMethodOrClass.SetActive(false);
 
@@ -127,6 +128,7 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.SetActive(false);
         string method = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = "";
         umlManager.AddMethod(method.Trim(' '), name);
     }
 
@@ -141,6 +143,7 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.SetActive(false);
         string attribute = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = "";
         umlManager.AddAttribute(attribute.Trim(' '), name);
     }
 
