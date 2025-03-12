@@ -24,7 +24,9 @@ public class GenerateCode : MonoBehaviour
     public List<int> usedKeys;
     public Dictionary<int, int> loopKeys;
     public Dictionary<int, string> commandTypes;
-
+    public Dictionary<string, List<string>> outputClassFiles = new Dictionary<string, List<string>>();
+    Dictionary<int, int> urovne = new Dictionary<int, int>();
+    int uroven = 1;
     public void initialise(List<Class_object> classObjects, Canvas canvasObj)
     {
         this.classObjects = classObjects;
@@ -40,17 +42,17 @@ public class GenerateCode : MonoBehaviour
     }
 
     public void generateCode()
-    {
+    {               
         this.class_Objects = classObjects;
-        foreach(Class_object claz in class_Objects)
+        foreach (Class_object claz in classObjects)
         {
-            foreach(string usen in claz.usings)
+            output = new List<string>();
+            //libaries
+            foreach (string usen in claz.usings)
             {
                 output.Add(usen);
             }
-        }
-        foreach(Class_object claz in class_Objects)
-        {
+            //initialise class name
             List<string> clazName = new List<string>();
             if (!claz.visibility.Equals("Unknown")) { clazName.Add(claz.visibility); }
             if (claz.isAbstract) { clazName.Add("abstract"); }
@@ -58,7 +60,7 @@ public class GenerateCode : MonoBehaviour
             clazName.Add(claz.type);
             clazName.Add(claz.name);
             int counter = 0;
-            foreach(var connect in claz.connections)
+            foreach (var connect in claz.connections)
             {
                 if (connect.Value.Equals("Generalisation") || connect.Value.Equals("Realisation"))
                 {
@@ -67,98 +69,127 @@ public class GenerateCode : MonoBehaviour
                     {
                         clazName.Add(":");
                         clazName.Add(connect.Key);
-                    } else
+                    }
+                    else
                     {
                         clazName.Add(", " + connect.Key);
                     }
                 }
             }
             clazName.Add("{");
-            output.Add(String.Join(" ",clazName));
+            output.Add(String.Join(" ", clazName));
             string vypis = "";
             foreach (string i in output)
             {
                 vypis += i + "\n";
             }
-            foreach(var attribute in claz.attributes)
+            //adding attributes
+            foreach (var attribute in claz.attributes)
             {
                 if (attribute.Contains("set;") || attribute.Contains("set;"))
                 {
                     output.Add(attribute.Trim(' '));
-                } else
+                }
+                else
                 {
                     output.Add(attribute.Trim(' ') + ";");
                 }
-                
+
             }
-            foreach(var method in claz.methods)
+            //adding method and their body code
+            foreach (var method in claz.methods)
             {
                 output.Add(method + " {");
                 generateMethodCode(claz, method);
-                output.Add( "}");
+                output.Add("}");
             }
             output.Add("}");
+            outputClassFiles.Add(claz.name, output);
         }
-        Debug.Log("Vysledok");
-        string filePath = "C:/Users/Admin/Desktop/SampleInheritance.cs";
-        try
-        {
-            File.Delete(filePath);
-            File.WriteAllLines(filePath, output);
-        } catch (IOException)
-        {
-            Console.WriteLine("An error occurred while writting to the file");
-        }
-        compileCode(filePath);
-    }
 
+        Debug.Log("Vysledok");
+        foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
+        {
+            string filePath = "C:/Users/Admin/Desktop/Preoutput/" + file.Key + ".cs";
+            try
+            {
+                File.Delete(filePath);
+                File.WriteAllLines(filePath, file.Value);                
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("An error occurred while writting to the file");
+            }            
+        }
+        CompileUnityScriptsInFolder("C:/Users/Admin/Desktop/Preoutput/");
+        foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
+        {
+            string filePath = "Assets/SampleOutputs/" + file.Key + ".cs";
+            try
+            {
+                File.Delete(filePath);
+                File.WriteAllLines(filePath, file.Value);                
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("An error occurred while writting to the file");
+            }            
+        }
+    }    
     public void generateMethodCode(Class_object class_Object,string method)
     {
         int start = 1;
         usedKeys = new List<int>();
         loopKeys = new Dictionary<int, int>();
-        commandTypes = new Dictionary<int, string>();                
-        generateCommandTypes(start, class_Object, method, 0);        
+        commandTypes = new Dictionary<int, string>();
+        urovne.Clear();
+        uroven = 1;
+        generateCommandTypes(start, class_Object, method, 0);
+        string vypluj = "Metoda " + method;
+        foreach(var j in commandTypes)
+        {
+            vypluj += " " + j.Key + " "  + class_Object.commandKeys[method][j.Key] + " " + j.Value;
+        }
+        Debug.Log(vypluj);
         usedKeys = new List<int>();
+
         workCommand(start,class_Object,method,0);        
     }
 
     private void generateCommandTypes(int fromKey, Class_object class_Object, string method, int lastKey)
     {
-        if (usedKeys.Contains(fromKey)) { return; }
+        if (usedKeys.Contains(fromKey)) return;
+
         if (class_Object.commandEdges[method][fromKey].Count == 1 && !class_Object.commandKeys[method][fromKey].Equals("else"))
         {
-            if (!commandTypes.ContainsKey(fromKey)){commandTypes.Add(fromKey, "command");}
-        } //while if else part
+            commandTypes[fromKey] = "command";
+        }
         else if (class_Object.commandEdges[method][fromKey].Count == 2)
         {
-            int loopKey = -1;
-            bool isLoop = false;
-            // Prech·dzame vöetky uzly a zisùujeme, Ëi sa nejak˝ odkazuje sp‰ù na `while`
-            foreach (KeyValuePair<int, Dictionary<int, string>> i in class_Object.commandEdges[method])
+            bool isLoop = class_Object.commandEdges[method].Any(edge =>
+                edge.Key != fromKey && edge.Key != lastKey && edge.Value.ContainsKey(fromKey));
+
+            if (isLoop)
             {
-                if (i.Key != fromKey && i.Key != lastKey && class_Object.commandEdges[method][i.Key].ContainsKey(fromKey))
-                {
-                    isLoop = true;
-                    loopKey = i.Key;                    
-                    break;
-                }
+                commandTypes[fromKey] = "loop";
             }
-            //spracovanie while cyklus commandu
-            if (isLoop){
-                commandTypes.Add(fromKey, "loop");
-                commandTypes.Add(loopKey, "loopback");
-            } else { commandTypes.Add(fromKey, "if_condition");}
-        } else if (class_Object.commandEdges[method][fromKey].Count == 1 && class_Object.commandKeys[method][fromKey].Equals("else"))
-        {
-            commandTypes.Add(fromKey, "else_condition");
+            else
+            {
+                commandTypes[fromKey] = "if_condition";
+            }
         }
+        else if (class_Object.commandEdges[method][fromKey].Count == 1 && class_Object.commandKeys[method][fromKey].Equals("else"))
+        {
+            commandTypes[fromKey] = "else_condition";
+        }
+
         usedKeys.Add(fromKey);
-        foreach (KeyValuePair<int, string> toKey in class_Object.commandEdges[method][fromKey])
+        foreach (var toKey in class_Object.commandEdges[method][fromKey])
         {
             generateCommandTypes(toKey.Key, class_Object, method, fromKey);
         }
     }
+
     private void workCommand(int fromKey, Class_object class_Object, string method, int lastKey)
     {
         if (usedKeys.Contains(fromKey)) return; // Uû spracovan˝ uzol
@@ -187,15 +218,12 @@ public class GenerateCode : MonoBehaviour
             if (counter > 1)
             {
                 Debug.Log("Som v prikaze " + class_Object.commandKeys[method][fromKey]);
-                if(commandTypes.ContainsKey(edges[0]) && (commandTypes[edges[0]].Equals("command") || commandTypes[edges[0]].Equals("loopback")))
+                if (commandTypes.ContainsKey(edges[0]) && (commandTypes[edges[0]].Equals("command") || commandTypes[edges[0]].Equals("loopback")))
                 {
                     return;
                 }
             }
-            foreach (var toKey in class_Object.commandEdges[method][fromKey])
-            {
-                workCommand(toKey.Key, class_Object, method, fromKey);
-            }
+            workCommand(edges[0], class_Object, method, fromKey);
         }
         //while if else part
         else if (class_Object.commandEdges[method][fromKey].Count == 2)
@@ -260,6 +288,7 @@ public class GenerateCode : MonoBehaviour
             //spracovanie if podmienky
             else
             {
+                Debug.Log("Som v ife");
                 output.Add("if (" + class_Object.commandKeys[method][fromKey] + ")");
                 output.Add("{");
                 int yesKey = -1;
@@ -328,6 +357,7 @@ public class GenerateCode : MonoBehaviour
 
                 if (noKey != -1 && yesKey != -1)
                 {
+                    Debug.Log("Idem spracovat if");
                     workCommand(yesKey, class_Object, method, fromKey);
                     output.Add("}");
                     workCommand(noKey, class_Object, method, fromKey);
@@ -349,7 +379,7 @@ public class GenerateCode : MonoBehaviour
         {
             Debug.Log("Zly activity diagram " + class_Object.commandKeys[method][fromKey]);
         }
-    }
+    }    
 
     public List<int> FindRoute(Class_object class_Object, string method, int fromKey, int toKey)
     {
@@ -388,65 +418,62 @@ public class GenerateCode : MonoBehaviour
 
         return new List<int>(); // Ak cesta neexistuje
     }
-
-
-
-    //spracuje command
-
-    public void compileCode(string pathToFile)
+    public bool CompileUnityScriptsInFolder(string folderPath)
     {
-        canvas.SetActive(false);
-        CompilationCanvas.SetActive(true);
-        string scriptCode = File.ReadAllText(pathToFile);
-        var syntaxTree = CSharpSyntaxTree.ParseText(scriptCode);
+        if (!Directory.Exists(folderPath))
+        {
+            Debug.Log($"PrieËinok neexistuje: {folderPath}");
+            return false;
+        }
 
-        // Unity assembly paths (update these paths according to your Unity installation)
+        string[] scriptFiles = Directory.GetFiles(folderPath, "*.cs", SearchOption.AllDirectories);
+
+        if (scriptFiles.Length == 0)
+        {
+            Debug.LogWarning($"V prieËinku {folderPath} neboli n·jdenÈ ûiadne C# skripty.");
+            return false;
+        }
+
+        List<SyntaxTree> syntaxTrees = new List<SyntaxTree>();
+        foreach (var file in scriptFiles)
+        {
+            string scriptCode = File.ReadAllText(file);
+            syntaxTrees.Add(CSharpSyntaxTree.ParseText(scriptCode));
+        }
+
+        // Cesty k dÙleûit˝m Unity DLL s˙borom (prispÙsob podæa verzie Unity)
         string unityEnginePath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Managed/UnityEngine.dll";
         string unityEditorPath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Managed/UnityEditor.dll";
-        string mscorlibPath = @"C:/Program Files/Unity/Hub/Editor/2021.3.23f1/Editor/Data/Tools/netcorerun/mscorlib.dll";
 
         var references = new[]
         {
-            MetadataReference.CreateFromFile(unityEnginePath),
-            MetadataReference.CreateFromFile(unityEditorPath),
-            MetadataReference.CreateFromFile(mscorlibPath),
-            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-            MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
+        MetadataReference.CreateFromFile(unityEnginePath),
+        MetadataReference.CreateFromFile(unityEditorPath),
+        MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
         };
+
         var compilation = CSharpCompilation.Create(
-            "Script Compilation",
-            new[] { syntaxTree},
+            "UnityProjectCompilation",
+            syntaxTrees,
             references,
-            new CSharpCompilationOptions(OutputKind.ConsoleApplication));
-        var diagnostics = compilation.GetDiagnostics();        
-        using (var ms = new MemoryStream())
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        var result = compilation.Emit(new MemoryStream());
+
+        if (!result.Success)
         {
-            var result = compilation.Emit(ms);
-
-            if (!result.Success)
+            Debug.Log("Chyby pri kompil·cii Unity skriptov:");
+            foreach (var chyba in result.Diagnostics)
             {
-                outputText.GetComponent<TextMeshProUGUI>().text = "Chyby pri kompil·cii:\n";
-                foreach (var chyba in result.Diagnostics)
-                {
-                    outputText.GetComponent<TextMeshProUGUI>().text += chyba.ToString() + "\n";
-                }
-                return;
+                Debug.Log(chyba.ToString());
             }
-
-            //Ak kompil·cia ˙speön·, spustÌme kÛd a zachytÌme v˝stup
-            ms.Seek(0, SeekOrigin.Begin);
-            var assembly = Assembly.Load(ms.ToArray());
-            var entryPoint = assembly.EntryPoint;
-
-            if (entryPoint != null)
-            {
-                var stringWriter = new StringWriter();
-                Console.SetOut(stringWriter); // ZachytÌme Console.WriteLine
-
-                entryPoint.Invoke(null, new object[] { new string[0] });
-
-                outputText.GetComponent<TextMeshProUGUI>().text = "Kompil·cia a spustenie ˙speönÈ:\n" + stringWriter.ToString();
-            }
+            return false;
         }
+
+        Debug.Log($"Kompil·cia ˙speön·! {scriptFiles.Length} skriptov skontrolovan˝ch.");
+        return true;
     }
+
+
 }

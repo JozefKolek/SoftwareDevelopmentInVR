@@ -10,353 +10,425 @@ using Newtonsoft.Json;
 
 public class Reading_graph
 {
-    public string path = "";
+    public string directoryPath;
     public CompilationUnitSyntax root;
     public int highestKey = 0;
-    
-    public Reading_graph(string path)
+    public int uroven = 0;
+    public Dictionary<int,int>  urovne = new Dictionary<int, int>();
+    public List<int> last_if_else_bodyKeys = new List<int>();
+    public Reading_graph(string directoryPath)
     {
-        this.path = path;
+        this.directoryPath = directoryPath;
     }
 
     public List<Class_object> read_from_code()
     {
         List<Class_object> classList = new List<Class_object>();
-        Dictionary<string, Class_object>  classDictionary = new Dictionary<string, Class_object>();
-
-        // Parse the syntax tree
-        var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(path));
-        var root = syntaxTree.GetCompilationUnitRoot();
-        
-        // Extract all classes and interfaces
-        var classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-        var interfaceNodes = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
-        var usings = root.Usings;
-        // Extracted data
-        var result = new List<object>();
-
-        foreach (var claz in classNodes)
+        List<Dictionary<string, object>> allData = new List<Dictionary<string, object>>();
+        var files = Directory.GetFiles(directoryPath, "*.cs", SearchOption.AllDirectories);
+        foreach(var file in files)
         {
-            result.Add(ExtractClassOrInterface(claz, "Class"));
-        }
+            Dictionary<string, Class_object> classDictionary = new Dictionary<string, Class_object>();
+            var syntaxTree = CSharpSyntaxTree.ParseText(File.ReadAllText(file));
+            var root = syntaxTree.GetCompilationUnitRoot();
 
-        foreach (var interfejz in interfaceNodes)
-        {
-            result.Add(ExtractClassOrInterface(interfejz, "Interface"));
-        }
-
-        // Convert data to JSON format
-        string jsonFormat = JsonConvert.SerializeObject(result, Formatting.Indented);
-        Debug.Log(jsonFormat.ToString());
-
-        // Deserialize the JSON into a list of dictionaries
-        var data = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonFormat);
-        int pocitadlo = 0;
-        //iterate over clases
-        foreach (var claz in data)
-        {
-            pocitadlo++;
-            // Initialize the Class_object
-            string className = claz["Name"].ToString();            
-            
-            Class_object class_Object = new Class_object(className);
-            if(pocitadlo == 1)
+            // Extract all classes and interfaces
+            var classNodes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            var interfaceNodes = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
+            var usings = root.Usings;
+            // Extracted data
+            var result = new List<object>();
+            foreach (var claz in classNodes)
             {
-                foreach(var usin in usings)
-                {
-                    class_Object.usings.Add(usin.ToString());
-                }
+                result.Add(ExtractClassOrInterface(claz, "Class"));
             }
 
-            string typ = claz.ContainsKey("Type") ? class_Object.type = claz["Type"].ToString().ToLower() : class_Object.type = "Unknown";
-            string visibil = claz.ContainsKey("Visibility") ? class_Object.visibility = claz["Visibility"].ToString() : class_Object.visibility =  "Unknown";
-            bool isAbstract = claz.ContainsKey("IsAbstract") ? class_Object.isAbstract = (bool)claz["IsAbstract"] : class_Object.isAbstract =  false;
-            bool isVirtual = claz.ContainsKey("IsVirtual") ? class_Object.isVirtual = (bool)claz["IsVirtual"] : class_Object.isVirtual =  false;
-            // Access Attributes if they exist
-            if (claz.ContainsKey("Attributes"))
+            foreach (var interfejz in interfaceNodes)
             {
-                var attributes = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Attributes"],Formatting.Indented));
-                if (attributes != null && attributes.Count > 0)
+                result.Add(ExtractClassOrInterface(interfejz, "Interface"));
+            }
+
+            // Convert data to JSON format
+            string jsonFormat = JsonConvert.SerializeObject(result, Formatting.Indented);
+            Debug.Log(jsonFormat.ToString());
+
+            // Deserialize the JSON into a list of dictionaries
+            var data = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(jsonFormat);
+            foreach(var i in data) { allData.Add(i);}
+            int pocitadlo = 0;
+            //iterate over clases
+            foreach (var claz in data)
+            {
+                pocitadlo++;
+                // Initialize the Class_object
+                string className = claz["Name"].ToString();
+
+                Class_object class_Object = new Class_object(className);
+                if (pocitadlo == 1)
                 {
-                    foreach (var attribute in attributes)
+                    foreach (var usin in usings)
                     {
-                        string name = attribute.ContainsKey("Name") ? attribute["Name"].ToString() : "Unknown";
-                        string type = attribute.ContainsKey("Type") ? attribute["Type"].ToString() : "Unknown";
-                        string visibility = attribute.ContainsKey("Visibility") ? attribute["Visibility"].ToString() : "Unknown";
-                        string defaultValue = attribute.ContainsKey("DefaultValue") && attribute["DefaultValue"]!=null ? attribute["DefaultValue"].ToString() : "None";
-                        string forAdd = " ";
-                        if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
-                        forAdd += type + " " + name;
-                        if (!defaultValue.Equals("None")) { forAdd += "= " + defaultValue;}                        
-                        class_Object.attributes.Add(forAdd);
+                        class_Object.usings.Add(usin.ToString());
                     }
                 }
-                else
-                {
-                    Debug.Log($"No attributes found for class: {className}");
-                }
-            }
 
-            // Access Properties if they exist
-            if (claz.ContainsKey("Properties"))
-            {
-                var properties = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Properties"], Formatting.Indented));                 
-                if (properties != null && properties.Count > 0)
+                string typ = claz.ContainsKey("Type") ? class_Object.type = claz["Type"].ToString().ToLower() : class_Object.type = "Unknown";
+                string visibil = claz.ContainsKey("Visibility") ? class_Object.visibility = claz["Visibility"].ToString() : class_Object.visibility = "Unknown";
+                bool isAbstract = claz.ContainsKey("IsAbstract") ? class_Object.isAbstract = (bool)claz["IsAbstract"] : class_Object.isAbstract = false;
+                bool isVirtual = claz.ContainsKey("IsVirtual") ? class_Object.isVirtual = (bool)claz["IsVirtual"] : class_Object.isVirtual = false;
+                // Access Attributes if they exist
+                if (claz.ContainsKey("Attributes"))
                 {
-                    foreach (var property in properties)
+                    var attributes = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Attributes"], Formatting.Indented));
+                    if (attributes != null && attributes.Count > 0)
                     {
-                        string name = property.ContainsKey("Name") ? property["Name"].ToString() : "Unknown";
-                        string type = property.ContainsKey("Type") ? property["Type"].ToString() : "Unknown";
-                        string visibility = property.ContainsKey("Visibility") ? property["Visibility"].ToString() : "Unknown";
-                        string defaultValue = property.ContainsKey("DefaultValue") && property["DefaultValue"] != null ? property["DefaultValue"].ToString() : "None";
-                        bool hasGetter = property.ContainsKey("HasGetter") && (bool)property["HasGetter"];
-                        bool hasSetter = property.ContainsKey("HasSetter") && (bool)property["HasSetter"];
-                        string forAdd = "";
-                        if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
-                        forAdd += type + " " + name;
-                        //docasne riesenie ak sa bude setovat value dopredu nebude to dobre
-                        if(hasGetter || hasSetter) 
+                        foreach (var attribute in attributes)
                         {
-                            forAdd += "{";
-                            if (hasGetter) { forAdd += "get; "; }
-                            if (hasSetter) { forAdd += " set; "; }
-                            forAdd += "}";
+                            string name = attribute.ContainsKey("Name") ? attribute["Name"].ToString() : "Unknown";
+                            string type = attribute.ContainsKey("Type") ? attribute["Type"].ToString() : "Unknown";
+                            string visibility = attribute.ContainsKey("Visibility") ? attribute["Visibility"].ToString() : "Unknown";
+                            string defaultValue = attribute.ContainsKey("DefaultValue") && attribute["DefaultValue"] != null ? attribute["DefaultValue"].ToString() : "None";
+                            string forAdd = " ";
+                            if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                            forAdd += type + " " + name;
+                            if (!defaultValue.Equals("None")) { forAdd += "= " + defaultValue; }
+                            class_Object.attributes.Add(forAdd);
                         }
-                        
-                        
-                        if (!defaultValue.Equals("None")) { forAdd += "= " + defaultValue; }
-                        class_Object.attributes.Add(forAdd);
+                    }
+                    else
+                    {
+                        Debug.Log($"No attributes found for class: {className}");
                     }
                 }
-                else
-                {
-                    Debug.Log($"No properties found for class: {className}");
-                }
-            }
 
-            // Access Constructors if they exist
-            if (claz.ContainsKey("Constructors"))
-            {
-                var constructors = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Constructors"], Formatting.Indented));
-                if (constructors != null && constructors.Count > 0)
+                // Access Properties if they exist
+                if (claz.ContainsKey("Properties"))
                 {
-                    foreach (var constructor in constructors)
+                    var properties = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Properties"], Formatting.Indented));
+                    if (properties != null && properties.Count > 0)
                     {
-                        string constructorName = constructor.ContainsKey("Name") ? constructor["Name"].ToString() : "Unknown";
-                        string visibility = constructor.ContainsKey("Visibility") ? constructor["Visibility"].ToString() : "Unknown";
-                        bool abstrakt = constructor.ContainsKey("IsAbstract") ? (bool)constructor["IsAbstract"] : false;
-                        bool virtualn = constructor.ContainsKey("IsVirtual") ? (bool)constructor["IsVirtual"] : false;
-                        var baseVariables = JsonConvert.DeserializeObject<List<string>>(JsonConvert.SerializeObject(constructor["BaseCall"],Formatting.Indented));
-                        string forAdd = "";
-                        if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
-                        if(virtualn) { forAdd += "virtual "; }
-                        if(abstrakt) { forAdd += "abstract "; }
-                        forAdd += constructorName + " (";
-                        //Accessibility to parameters which constructors have
-                        if (constructor.ContainsKey("Parameters"))
+                        foreach (var property in properties)
                         {
-                            var parameters = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(constructor["Parameters"], Formatting.Indented));
-                            if (parameters != null && parameters.Count > 0)
+                            string name = property.ContainsKey("Name") ? property["Name"].ToString() : "Unknown";
+                            string type = property.ContainsKey("Type") ? property["Type"].ToString() : "Unknown";
+                            string visibility = property.ContainsKey("Visibility") ? property["Visibility"].ToString() : "Unknown";
+                            string defaultValue = property.ContainsKey("DefaultValue") && property["DefaultValue"] != null ? property["DefaultValue"].ToString() : "None";
+                            bool hasGetter = property.ContainsKey("HasGetter") && (bool)property["HasGetter"];
+                            bool hasSetter = property.ContainsKey("HasSetter") && (bool)property["HasSetter"];
+                            string forAdd = "";
+                            if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                            forAdd += type + " " + name;
+                            //docasne riesenie ak sa bude setovat value dopredu nebude to dobre
+                            if (hasGetter || hasSetter)
                             {
-                                foreach (var parameter in parameters)
+                                forAdd += "{";
+                                if (hasGetter) { forAdd += "get; "; }
+                                if (hasSetter) { forAdd += " set; "; }
+                                forAdd += "}";
+                            }
+
+
+                            if (!defaultValue.Equals("None")) { forAdd += "= " + defaultValue; }
+                            class_Object.attributes.Add(forAdd);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"No properties found for class: {className}");
+                    }
+                }
+
+                // Access Constructors if they exist
+                if (claz.ContainsKey("Constructors"))
+                {
+                    var constructors = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Constructors"], Formatting.Indented));
+                    if (constructors != null && constructors.Count > 0)
+                    {
+                        foreach (var constructor in constructors)
+                        {
+                            string constructorName = constructor.ContainsKey("Name") ? constructor["Name"].ToString() : "Unknown";
+                            string visibility = constructor.ContainsKey("Visibility") ? constructor["Visibility"].ToString() : "Unknown";
+                            bool abstrakt = constructor.ContainsKey("IsAbstract") ? (bool)constructor["IsAbstract"] : false;
+                            bool virtualn = constructor.ContainsKey("IsVirtual") ? (bool)constructor["IsVirtual"] : false;
+                            var baseVariables = JsonConvert.DeserializeObject<List<string>>(JsonConvert.SerializeObject(constructor["BaseCall"], Formatting.Indented));
+                            string forAdd = "";
+                            if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                            if (virtualn) { forAdd += "virtual "; }
+                            if (abstrakt) { forAdd += "abstract "; }
+                            forAdd += constructorName + " (";
+                            //Accessibility to parameters which constructors have
+                            if (constructor.ContainsKey("Parameters"))
+                            {
+                                var parameters = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(constructor["Parameters"], Formatting.Indented));
+                                if (parameters != null && parameters.Count > 0)
                                 {
-                                    string name = parameter.ContainsKey("Text") ? parameter["Text"].ToString() : "Unknown";
-                                    string type = parameter.ContainsKey("Type") ? parameter["Type"].ToString() : "Unknown";
-                                    forAdd += type + " " + name + ",";
+                                    foreach (var parameter in parameters)
+                                    {
+                                        string name = parameter.ContainsKey("Text") ? parameter["Text"].ToString() : "Unknown";
+                                        string type = parameter.ContainsKey("Type") ? parameter["Type"].ToString() : "Unknown";
+                                        forAdd += type + " " + name + ",";
+                                    }
+                                    forAdd = forAdd.Substring(0, forAdd.Length - 1);
                                 }
-                                forAdd = forAdd.Substring(0, forAdd.Length - 1);
+                            }
+                            forAdd += " )";
+                            if (baseVariables != null && baseVariables.Count > 0)
+                            {
+                                Debug.Log("dostal som sa sem");
+                                int counter = 0;
+                                forAdd += " : base (";
+                                foreach (string variable in baseVariables)
+                                {
+                                    counter++;
+                                    if (counter == 1) { forAdd += variable; }
+                                    else { forAdd += ", " + variable; }
+                                }
+                                forAdd += ")";
+                            }
+                            class_Object.methods.Add(forAdd);
+                            class_Object.methodCommands.Add(forAdd, new List<string>());
+                            class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
+                            class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
+                            class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
+                            Debug.Log("som konstr?");
+                            if (constructor.ContainsKey("Commands"))
+                            {
+                                var commands = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
+
+                                class_Object.commandKeys[forAdd].Add(1, "start");
+                                class_Object.commandKeys[forAdd].Add(0, "end");
+
+                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+                                if (commands != null && commands.Count > 0)
+                                {
+                                    highestKey = 1;
+                                    uroven = 1;
+                                    urovne.Clear();
+                                    last_if_else_bodyKeys.Clear();
+                                    class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");                                    
+                                    parseCommands(commands, class_Object, forAdd);
+                                    Debug.Log(string.Join(", ", urovne.Select(kvp => $"{class_Object.commandKeys[forAdd][kvp.Key]}: {kvp.Value}")));
+                                    //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
+                                    Dictionary<int, int> forChange = new Dictionary<int, int>();
+
+                                    foreach (var command in class_Object.commandEdges[forAdd])
+                                    {
+                                        if (command.Key != 0)
+                                        {
+                                            if (command.Value.Count == 0)
+                                            {
+                                                class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
+                                            }
+                                            else
+                                            {
+                                                foreach (var commandEdge in command.Value)
+                                                {
+                                                    if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
+                                                    {
+                                                        forChange.Add(command.Key, commandEdge.Key);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    foreach (var remove in forChange)
+                                    {
+                                        class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
+                                        class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
+                                    }
+
+                                    List<int> listKlucovUrovni = urovne.Keys.ToList();
+                                    for(int i = 0;i< listKlucovUrovni.Count; i++)
+                                    {
+                                        if (last_if_else_bodyKeys.Contains(listKlucovUrovni[i]))
+                                        {
+                                            List<int> hrany = class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Keys.ToList();
+                                            Debug.Log("Dlzka ifelsebody key " + listKlucovUrovni[i] + " " + class_Object.commandKeys[forAdd][listKlucovUrovni[i]] + " " + hrany.Count);
+                                            foreach(var hrana in hrany)
+                                            {
+                                                if (class_Object.commandKeys[forAdd][hrana].Equals("else") && urovne.ContainsKey(hrana))
+                                                {
+                                                    Debug.Log("Idem zmenit kluc");
+                                                    int ReplaceKey = 0;
+                                                    for(int j = i + 1; j < listKlucovUrovni.Count; j++)
+                                                    {
+                                                        if (urovne[hrana] - 1 == urovne[listKlucovUrovni[j]])
+                                                        {
+                                                            ReplaceKey = listKlucovUrovni[j];                                                            
+                                                            break;
+                                                        }
+                                                    }
+                                                    class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Remove(hrana);
+                                                    class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Add(ReplaceKey, "normal");
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                        forAdd += " )";
-                        if(baseVariables!=null && baseVariables.Count > 0)
+                    }
+                    else
+                    {
+                        Debug.Log($"No constructors found for class: {className}");
+                    }
+                }
+
+                //Add methods
+                if (claz.ContainsKey("Methods"))
+                {
+                    var methods = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Methods"], Formatting.Indented));
+                    if (methods != null && methods.Count > 0)
+                    {
+                        foreach (var method in methods)
                         {
-                            Debug.Log("dostal som sa sem");
-                            int counter = 0;
-                            forAdd += " : base (";
-                            foreach(string variable in baseVariables)
+                            string visibility = method.ContainsKey("Visibility") ? method["Visibility"].ToString() : "Unknown";
+                            string returnType = method.ContainsKey("ReturnType") ? method["ReturnType"].ToString() : "Unknown";
+                            string name = method.ContainsKey("Name") ? method["Name"].ToString() : "Unknown";
+                            bool isOveride = method.ContainsKey("IsOverride") ? (bool)method["IsOverride"] : false;
+                            bool abstrakt = method.ContainsKey("IsAbstract") ? (bool)method["IsAbstract"] : false;
+                            bool virtualn = method.ContainsKey("IsVirtual") ? (bool)method["IsVirtual"] : false;
+                            bool isStatic = method.ContainsKey("IsStatic") ? (bool)method["IsStatic"] : false;
+                            string forAdd = "";
+                            if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
+                            if (isStatic) { forAdd += "static "; }
+                            if (virtualn) { forAdd += "virtual "; }
+                            if (abstrakt) { forAdd += "abstract "; }
+                            if (isOveride) { forAdd += "override "; }
+                            forAdd += returnType + " " + name + "(";
+                            //Include parameters
+                            if (method.ContainsKey("Parameters"))
                             {
-                                counter++;
-                                if (counter == 1) { forAdd += variable; }
-                                else { forAdd += ", " + variable; }
+                                var parameters = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(method["Parameters"], Formatting.Indented));
+                                if (parameters != null && parameters.Count > 0)
+                                {
+                                    foreach (var parameter in parameters)
+                                    {
+                                        string nameParameter = parameter.ContainsKey("Text") ? parameter["Text"].ToString() : "Unknown";
+                                        string type = parameter.ContainsKey("Type") ? parameter["Type"].ToString() : "Unknown";
+                                        forAdd += type + " " + nameParameter + ",";
+                                    }
+                                    forAdd = forAdd.Substring(0, forAdd.Length - 1);
+                                }
                             }
                             forAdd += ")";
-                        }
-                        class_Object.methods.Add(forAdd);
-                        class_Object.methodCommands.Add(forAdd, new List<string>());
-                        class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
-                        class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
-                        class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
-                        Debug.Log("som konstr?");
-                        if (constructor.ContainsKey("Commands")){                            
-                            var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(constructor["Commands"], Formatting.Indented));
-
-                            class_Object.commandKeys[forAdd].Add(1, "start");
-                            class_Object.commandKeys[forAdd].Add(0, "end");
-
-                            class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
-                            class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
-                            if (commands != null && commands.Count > 0)
-                            {                               
-                                highestKey = 1;
-                                class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");
-                                parseCommands(commands, class_Object, forAdd);
-                                //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
-                                Dictionary<int, int> forChange = new Dictionary<int, int>();
-
-                                foreach (var command in class_Object.commandEdges[forAdd])
-                                {
-                                    if (command.Key != 0)
-                                    {
-                                        if (command.Value.Count == 0)
-                                        {
-                                            class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
-                                        }
-                                        else
-                                        {
-                                            foreach (var commandEdge in command.Value)
-                                            {
-                                                if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
-                                                {
-                                                    forChange.Add(command.Key, commandEdge.Key);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                foreach (var remove in forChange)
-                                {
-                                    class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
-                                    class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    Debug.Log($"No constructors found for class: {className}");
-                }
-            }
-
-            //Add methods
-            if (claz.ContainsKey("Methods"))
-            {
-                var methods = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Methods"], Formatting.Indented));
-                if (methods!=null && methods.Count > 0)
-                {
-                    foreach(var method in methods)
-                    {
-                        string visibility = method.ContainsKey("Visibility") ? method["Visibility"].ToString() : "Unknown";
-                        string returnType = method.ContainsKey("ReturnType") ? method["ReturnType"].ToString() : "Unknown";
-                        string name = method.ContainsKey("Name") ? method["Name"].ToString() : "Unknown";
-                        bool isOveride = method.ContainsKey("IsOverride") ? (bool) method["IsOverride"] : false;
-                        bool abstrakt = method.ContainsKey("IsAbstract") ? (bool)method["IsAbstract"] : false;
-                        bool virtualn = method.ContainsKey("IsVirtual") ? (bool)method["IsVirtual"] : false;
-                        bool isStatic = method.ContainsKey("IsStatic") ? (bool)method["IsStatic"] : false;
-                        string forAdd = "";
-                        if (!visibility.Equals("Unknown")) { forAdd += visibility + " "; }
-                        if (isStatic) { forAdd += "static "; }
-                        if (virtualn) { forAdd += "virtual "; }
-                        if (abstrakt) { forAdd += "abstract "; }
-                        if (isOveride) { forAdd += "override "; }
-                        forAdd += returnType + " " + name + "(";
-                        //Include parameters
-                        if (method.ContainsKey("Parameters"))
-                        {
-                            var parameters = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(method["Parameters"], Formatting.Indented));
-                            if (parameters != null && parameters.Count > 0)
+                            class_Object.methods.Add(forAdd);
+                            class_Object.methodCommands.Add(forAdd, new List<string>());
+                            class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
+                            class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
+                            class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
+                            //include commands
+                            if (method.ContainsKey("Commands"))
                             {
-                                foreach (var parameter in parameters)
+                                var commands = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(method["Commands"], Formatting.Indented));
+
+                                class_Object.commandKeys[forAdd].Add(1, "start");
+                                class_Object.commandKeys[forAdd].Add(0, "end");
+
+                                class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
+                                class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
+
+                                if (commands != null && commands.Count > 0)
                                 {
-                                    string nameParameter = parameter.ContainsKey("Text") ? parameter["Text"].ToString() : "Unknown";
-                                    string type = parameter.ContainsKey("Type") ? parameter["Type"].ToString() : "Unknown";
-                                    forAdd += type + " " + nameParameter + ",";
-                                }
-                                forAdd = forAdd.Substring(0, forAdd.Length - 1);
-                            }
-                        }
-                        forAdd += ")";
-                        class_Object.methods.Add(forAdd);
-                        class_Object.methodCommands.Add(forAdd, new List<string>());
-                        class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
-                        class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
-                        class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
-                        //include commands
-                        if (method.ContainsKey("Commands"))
-                        {
-                            var commands = JsonConvert.DeserializeObject<List<Dictionary<string,object>>>(JsonConvert.SerializeObject(method["Commands"], Formatting.Indented));
+                                    highestKey = 1;
+                                    uroven = 1;
+                                    urovne.Clear();
+                                    class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");
+                                    last_if_else_bodyKeys.Clear();
+                                    parseCommands(commands, class_Object, forAdd);
+                                    Debug.Log(string.Join(", ", urovne.Select(kvp => $"{class_Object.commandKeys[forAdd][kvp.Key]}: {kvp.Value}")));
+                                    //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
+                                    Dictionary<int, int> forChange = new Dictionary<int, int>();
 
-                            class_Object.commandKeys[forAdd].Add(1, "start");
-                            class_Object.commandKeys[forAdd].Add(0, "end");
-
-                            class_Object.commandEdges[forAdd].Add(1, new Dictionary<int, string>());
-                            class_Object.commandEdges[forAdd].Add(0, new Dictionary<int, string>());
-
-                            if (commands != null && commands.Count > 0)
-                            {                                
-                                highestKey = 1;
-                                class_Object.commandEdges[forAdd][1].Add(highestKey + 1, "normal");
-                                parseCommands(commands, class_Object, forAdd);
-                                //doeriesenie false hran ak target neexistuje priradi sa mu end, popripade ak nema nic priradene prida sa mu end
-                                Dictionary<int, int> forChange = new Dictionary<int, int>();
-
-                                foreach (var command in class_Object.commandEdges[forAdd])
-                                {
-                                    if (command.Key != 0)
+                                    foreach (var command in class_Object.commandEdges[forAdd])
                                     {
-                                        if (command.Value.Count == 0)
+                                        if (command.Key != 0)
                                         {
-                                            class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
-                                        }
-                                        else
-                                        {
-                                            foreach (var commandEdge in command.Value)
+                                            if (command.Value.Count == 0)
                                             {
-                                                if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
+                                                class_Object.commandEdges[forAdd][command.Key].Add(0, "normal");
+                                            }
+                                            else
+                                            {
+                                                foreach (var commandEdge in command.Value)
                                                 {
-                                                    forChange.Add(command.Key, commandEdge.Key);
+                                                    if (!class_Object.commandKeys[forAdd].ContainsKey(commandEdge.Key))
+                                                    {
+                                                        forChange.Add(command.Key, commandEdge.Key);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    foreach (var remove in forChange)
+                                    {
+                                        class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
+                                        class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
+                                    }
+                                    List<int> listKlucovUrovni = urovne.Keys.ToList();
+                                    for (int i = 0; i < listKlucovUrovni.Count; i++)
+                                    {
+                                        if (last_if_else_bodyKeys.Contains(listKlucovUrovni[i]))
+                                        {
+                                            List<int> hrany = class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Keys.ToList();
+                                            Debug.Log("Dlzka ifelsebody key " + listKlucovUrovni[i] + " " + class_Object.commandKeys[forAdd][listKlucovUrovni[i]] + " " + hrany.Count);
+                                            foreach (var hrana in hrany)
+                                            {
+                                                if (class_Object.commandKeys[forAdd][hrana].Equals("else") && urovne.ContainsKey(hrana))
+                                                {
+                                                    Debug.Log("Idem zmenit kluc");
+                                                    int ReplaceKey = 0;
+                                                    for (int j = i + 1; j < listKlucovUrovni.Count; j++)
+                                                    {
+                                                        if (urovne[hrana] - 1 == urovne[listKlucovUrovni[j]])
+                                                        {
+                                                            ReplaceKey = listKlucovUrovni[j];
+                                                            break;
+                                                        }
+                                                    }
+                                                    class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Remove(hrana);
+                                                    class_Object.commandEdges[forAdd][listKlucovUrovni[i]].Add(ReplaceKey, "normal");
                                                 }
                                             }
                                         }
                                     }
                                 }
-                                foreach (var remove in forChange)
-                                {
-                                    class_Object.commandEdges[forAdd][remove.Key].Remove(remove.Value);
-                                    class_Object.commandEdges[forAdd][remove.Key].Add(0, "normal");
-                                }
                             }
                         }
                     }
                 }
-            }
-            //AddComponentMenu generalisation or realisation
-            if (claz.ContainsKey("Connections"))
-            {
-                var connections = JsonConvert.DeserializeObject<Dictionary<string, string>>(JsonConvert.SerializeObject(claz["Connections"], Formatting.Indented));
-                if (connections != null && connections.Count > 0)
+                //AddComponentMenu generalisation or realisation
+                if (claz.ContainsKey("Connections"))
                 {
-                    foreach (KeyValuePair<string,string> connect in connections)
+                    var connections = JsonConvert.DeserializeObject<Dictionary<string, string>>(JsonConvert.SerializeObject(claz["Connections"], Formatting.Indented));
+                    if (connections != null && connections.Count > 0)
                     {
-                        class_Object.connections.Add(connect.Key, connect.Value);
+                        foreach (KeyValuePair<string, string> connect in connections)
+                        {
+                            class_Object.connections.Add(connect.Key, connect.Value);
+                        }
                     }
                 }
-            }
-            classDictionary.Add(className,class_Object);
+                classDictionary.Add(className, class_Object);
+            }            
+            foreach (Class_object claz in classDictionary.Values) { classList.Add(claz); }
         }
-        foreach(var claz in classDictionary)
+        Dictionary<string, Class_object> classNodesdict = new Dictionary<string, Class_object>();
+        foreach(var claz in classList) { classNodesdict.Add(claz.name, claz);}
+        foreach (var claz in classNodesdict)
         {
             foreach (var connect in claz.Value.connections)
             {
-                if (classDictionary.ContainsKey(connect.Key) &&  classDictionary[connect.Key].type.Equals("interface"))
+                if (classNodesdict.ContainsKey(connect.Key) && classNodesdict[connect.Key].type.Equals("interface"))
                 {
-                    classDictionary[claz.Key].connections[connect.Key] = "Realisation";
+                    classNodesdict[claz.Key].connections[connect.Key] = "Realisation";
                 }
             }
         }
         //add Aggregation, Composition, Dependency, Association
         //iterate again over clases
-        foreach (var claz in data)
+        foreach (var claz in allData)
         {
             string className = claz["Name"].ToString();
             //add Aggregation, Composition, Association
@@ -365,7 +437,7 @@ public class Reading_graph
                 var attributes = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(claz["Attributes"], Formatting.Indented));
                 //iterate over attributes
                 if (attributes != null && attributes.Count > 0)
-                {                    
+                {
                     foreach (var attribute in attributes)
                     {
                         string name = attribute.ContainsKey("Name") ? attribute["Name"].ToString() : "Unknown";
@@ -374,26 +446,29 @@ public class Reading_graph
                         bool isConnection = false;
                         string targetclassName = "";
                         //We found another class Declaration
-                        foreach (string meno in classDictionary.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }                            
-                        if (isConnection && !classDictionary[className].connections.ContainsKey(targetclassName))
+                        foreach (string meno in classNodesdict.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }
+                        if (isConnection && !classNodesdict[className].connections.ContainsKey(targetclassName))
                         {
-                            if (!defaultValue.Equals("None")){
+                            if (!defaultValue.Equals("None"))
+                            {
                                 if (defaultValue.Contains("new"))
                                 {
-                                    classDictionary[className].connections.Add(targetclassName, "Composition");
-                                } else
-                                {
-                                    classDictionary[className].connections.Add(targetclassName, "Aggregation");
+                                    classNodesdict[className].connections.Add(targetclassName, "Composition");
                                 }
-                            } else
+                                else
+                                {
+                                    classNodesdict[className].connections.Add(targetclassName, "Aggregation");
+                                }
+                            }
+                            else
                             {
                                 //We didn't find initialisation so must search in class method commands
                                 bool hasConnection = false;
-                                foreach (KeyValuePair<string, List<string>> method in classDictionary[className].methodCommands)
+                                foreach (KeyValuePair<string, List<string>> method in classNodesdict[className].methodCommands)
                                 {
                                     foreach (string command in method.Value)
                                     {
-                                        string[] lines = command.Split("/n");                                        
+                                        string[] lines = command.Split("/n");
                                         foreach (string line in lines)
                                         {
                                             //nasiel som premennu typu targetClass ktorej chybala inicializacia
@@ -405,11 +480,12 @@ public class Reading_graph
                                                     hasConnection = true;
                                                     if (line.Contains("new"))
                                                     {
-                                                        classDictionary[className].connections.Add(targetclassName, "Composition");
-                                                    } else
+                                                        classNodesdict[className].connections.Add(targetclassName, "Composition");
+                                                    }
+                                                    else
                                                     {
-                                                        classDictionary[className].connections.Add(targetclassName, "Aggregation");
-                                                    }                                                    
+                                                        classNodesdict[className].connections.Add(targetclassName, "Aggregation");
+                                                    }
                                                 }
                                             }
                                             if (hasConnection) { break; }
@@ -418,7 +494,7 @@ public class Reading_graph
                                     }
                                     if (hasConnection) { break; }
                                 }
-                                if (!classDictionary[className].connections.ContainsKey(targetclassName)) { classDictionary[className].connections.Add(targetclassName, "Aggregation");}
+                                if (!classNodesdict[className].connections.ContainsKey(targetclassName)) { classNodesdict[className].connections.Add(targetclassName, "Aggregation"); }
                             }
                         }
                     }
@@ -437,24 +513,24 @@ public class Reading_graph
                         string defaultValue = property.ContainsKey("DefaultValue") && property["DefaultValue"] != null ? property["DefaultValue"].ToString() : "None";
                         bool isConnection = false;
                         string targetclassName = "";
-                        foreach (string meno in classDictionary.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }
-                        if (isConnection && !classDictionary[className].connections.ContainsKey(targetclassName))
+                        foreach (string meno in classNodesdict.Keys) { if (type.Contains(meno)) { isConnection = true; targetclassName = meno; } }
+                        if (isConnection && !classNodesdict[className].connections.ContainsKey(targetclassName))
                         {
                             if (!defaultValue.Equals("None"))
                             {
                                 if (defaultValue.Contains("new"))
                                 {
-                                    classDictionary[className].connections.Add(targetclassName, "Composition");
+                                    classNodesdict[className].connections.Add(targetclassName, "Composition");
                                 }
                                 else
                                 {
-                                    classDictionary[className].connections.Add(targetclassName, "Aggregation");
+                                    classNodesdict[className].connections.Add(targetclassName, "Aggregation");
                                 }
                             }
                             else
                             {
                                 bool hasConnection = false;
-                                foreach (KeyValuePair<string, List<string>> method in classDictionary[className].methodCommands)
+                                foreach (KeyValuePair<string, List<string>> method in classNodesdict[className].methodCommands)
                                 {
                                     foreach (string command in method.Value)
                                     {
@@ -468,11 +544,11 @@ public class Reading_graph
                                                     hasConnection = true;
                                                     if (line.Contains("new"))
                                                     {
-                                                        classDictionary[className].connections.Add(targetclassName, "Composition");
+                                                        classNodesdict[className].connections.Add(targetclassName, "Composition");
                                                     }
                                                     else
                                                     {
-                                                        classDictionary[className].connections.Add(targetclassName, "Aggregation");
+                                                        classNodesdict[className].connections.Add(targetclassName, "Aggregation");
                                                     }
                                                 }
                                             }
@@ -482,15 +558,15 @@ public class Reading_graph
                                     }
                                     if (hasConnection) { break; }
                                 }
-                                if (!classDictionary[className].connections.ContainsKey(targetclassName)) { classDictionary[className].connections.Add(targetclassName, "Aggregation"); }
+                                if (!classNodesdict[className].connections.ContainsKey(targetclassName)) { classNodesdict[className].connections.Add(targetclassName, "Aggregation"); }
                             }
                         }
                     }
-                }                
+                }
             }
             //vbn add dependency, Association
             //iterate over just methods in class
-            foreach (KeyValuePair<string, List<string>> method in classDictionary[className].methodCommands)
+            foreach (KeyValuePair<string, List<string>> method in classNodesdict[className].methodCommands)
             {
                 foreach (string command in method.Value)
                 {
@@ -498,24 +574,26 @@ public class Reading_graph
                     foreach (string line in lines)
                     {
                         string targetClasName = " ";
-                        foreach(string meno in classDictionary.Keys) { if (line.Contains(meno) && !line.Contains("if")){ targetClasName = meno;break; }}
+                        foreach (string meno in classNodesdict.Keys) { if (line.Contains(meno) && !line.Contains("if")) { targetClasName = meno; break; } }
                         //another clas declaration was found
-                        if(!targetClasName.Equals(" ") && !classDictionary[className].connections.ContainsKey(targetClasName)){
+                        if (!targetClasName.Equals(" ") && !classNodesdict[className].connections.ContainsKey(targetClasName))
+                        {
                             if (line.Contains("="))
                             {
                                 //Hash clas inicialisation
-                                classDictionary[className].connections.Add(targetClasName, "Dependency");
-                            } else
+                                classNodesdict[className].connections.Add(targetClasName, "Dependency");
+                            }
+                            else
                             {
-                                classDictionary[className].connections.Add(targetClasName, "Asociation");
+                                classNodesdict[className].connections.Add(targetClasName, "Asociation");
                             }
                         }
-                    }                    
+                    }
                 }
             }
         }
-        //fill list for return. Dictionary was better for ClassObject editation 
-        foreach(Class_object claz in classDictionary.Values) { classList.Add(claz); }
+        classList = new List<Class_object>();
+        foreach (var node in classNodesdict) { classList.Add(node.Value);}
         return classList;
     }
 
@@ -526,7 +604,7 @@ public class Reading_graph
             string typeOfComand = command.ContainsKey("Type") ? command["Type"].ToString() : "Unknown";
             if (typeOfComand.Equals("ForLoop"))
             {
-                int conditionKey = -1;                
+                int conditionKey = -1;
                 string initialisation = command.ContainsKey("Initialization") ? command["Initialization"].ToString() : "Unknown";
                 string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
                 var incrementors = command.ContainsKey("Incrementors") && command["Incrementors"] is IEnumerable<object> incr
@@ -534,7 +612,7 @@ public class Reading_graph
                     : new List<string>();
 
                 // Handle initialization
-                if (!initialisation.Equals("Unknown") && initialisation.Length > 0  && !condition.Equals("Unknown") && condition.Length > 0 && incrementors.Count > 0)
+                if (!initialisation.Equals("Unknown") && initialisation.Length > 0 && !condition.Equals("Unknown") && condition.Length > 0 && incrementors.Count > 0)
                 {
                     conditionKey = highestKey + 2;
 
@@ -551,6 +629,9 @@ public class Reading_graph
                     class_Object.commandEdges[forAdd][highestKey - 1].Add(highestKey, "normal");
                     class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
 
+                    urovne.Add(highestKey - 1, uroven);
+                    urovne.Add(highestKey, uroven);
+
                     // Handle body
                     if (command.ContainsKey("Body"))
                     {
@@ -558,7 +639,9 @@ public class Reading_graph
                             JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
                         if (body != null && body.Count > 0)
                         {
+                            uroven += 1;
                             parseCommands(body, class_Object, forAdd);
+                            uroven -= 1;
                         }
                     }
                     // Handle incrementors                    
@@ -572,9 +655,11 @@ public class Reading_graph
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
                     class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
 
+                    urovne.Add(highestKey, uroven);
+
                     //pridam spoj prec z foru ked podmienka nie je splnena
-                    class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1,"normal");
-                }                                                            
+                    class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
+                }
             }
             else if (typeOfComand.Equals("WhileLoop"))
             {
@@ -596,6 +681,8 @@ public class Reading_graph
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
                     class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
 
+                    urovne.Add(highestKey, uroven);
+
                     // Handle body
                     if (command.ContainsKey("Body"))
                     {
@@ -604,28 +691,53 @@ public class Reading_graph
 
                         if (body != null && body.Count > 0)
                         {
+                            uroven += 1;
                             parseCommands(body, class_Object, forAdd);
+                            uroven -= 1;
                         }
                     }
                     if (highestKey != conditionKey)
                     {
                         class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
 
-                        class_Object.commandEdges[forAdd][highestKey].Remove(highestKey+1);
+                        class_Object.commandEdges[forAdd][highestKey].Remove(highestKey + 1);
                         class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
+                        Dictionary<int,int> forEdit = new Dictionary<int, int>();
+                        for(int i = conditionKey; i <= highestKey;i++)
+                        {
+                            if (urovne.ContainsKey(i) && last_if_else_bodyKeys.Contains(i))
+                            {
+                                foreach(var hrana in class_Object.commandEdges[forAdd][i])
+                                {
+                                    if (class_Object.commandKeys[forAdd].ContainsKey(hrana.Key) && class_Object.commandKeys[forAdd][hrana.Key].Equals("else"))
+                                    {
+                                        forEdit.Add(i,hrana.Key);                                        
+                                    } else if (!class_Object.commandKeys[forAdd].ContainsKey(hrana.Key))
+                                    {
+                                        forEdit.Add(i, hrana.Key);                                        
+                                    }
+                                }
+                            }
+                        }
+                        foreach(KeyValuePair<int,int> removed in forEdit)
+                        {
+                            last_if_else_bodyKeys.Remove(removed.Key);
+                            class_Object.commandEdges[forAdd][removed.Key].Remove(removed.Value);
+                            class_Object.commandEdges[forAdd][removed.Key].Add(conditionKey, "normal");
+                        }
                     }
                 }
             }
             else if (typeOfComand.Equals("IfCondition"))
             {
-                int conditionKey = -1;
-                int lastIfBodyKey = -1;
+                int ifConditionKey = -1;
+                bool containIfBody = false;
+                bool containElse = false;
+                bool containElseBody = false;
                 string condition = command.ContainsKey("Condition") ? command["Condition"].ToString() : "Unknown";
-
-                // Handle condition
                 if (!condition.Equals("Unknown") && condition.Length > 0)
                 {
-                    conditionKey = highestKey + 1;
+                    ifConditionKey = highestKey + 1;
 
                     class_Object.methodCommands[forAdd].Add(condition);
 
@@ -636,23 +748,40 @@ public class Reading_graph
                     class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
                     class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
 
-                    // Handle body
+                    urovne.Add(highestKey, uroven);
+
+                    //check construction of if condition what else ThreadStaticAttribute contains
                     if (command.ContainsKey("Body"))
                     {
                         var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
-                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
-                        if (body != null && body.Count > 0)
-                        {
-                            parseCommands(body, class_Object, forAdd);
-                            lastIfBodyKey = highestKey;
-                        }
+                           JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        if (body != null && body.Count > 0) { containIfBody = true; }
                     }
-
                     if (command.ContainsKey("ElseBody") && command["ElseBody"] is not null)
                     {
-                        int elseKey = highestKey + 1;
+                        containElse = true;
+                        var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
+                        if (elseBody != null && elseBody.Count > 0) { containElseBody = true; }
+                    }
+                    //case classic construction if ifBody else containElseBody
+                    if (containIfBody && containElse && containElseBody)
+                    {
+                        int ifBodyKey = -1;
+                        int elseKey = -1;
+                        int elseBodyKey = -1;
 
+                        //workifbody
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        uroven += 1;
+                        parseCommands(body, class_Object, forAdd);
+                        uroven -= 1;
+                        ifBodyKey = highestKey;
+                        last_if_else_bodyKeys.Add(ifBodyKey);
+
+                        //workelseCondition
                         highestKey++;
+                        elseKey = highestKey;
                         class_Object.methodCommands[forAdd].Add("else");
 
                         class_Object.commandKeys[forAdd].Add(highestKey, "else");
@@ -660,30 +789,109 @@ public class Reading_graph
                         class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
                         class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
 
-                        //prepoj ifu no casu s elsom
-                        if (!class_Object.commandEdges[forAdd][conditionKey].ContainsKey(highestKey))
-                        {
-                            class_Object.commandEdges[forAdd][conditionKey].Add(highestKey, "false");
-                        }
+                        urovne.Add(highestKey, uroven);
 
+                        class_Object.commandEdges[forAdd][ifConditionKey].Add(elseKey, "normal");
+                        if (class_Object.commandEdges[forAdd].ContainsKey(ifBodyKey) && class_Object.commandEdges[forAdd][ifBodyKey].ContainsKey(elseKey)) { class_Object.commandEdges[forAdd][ifBodyKey].Remove(elseKey); }
+
+                        //workElseBody
                         var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
+                        uroven += 1;
+                        parseCommands(elseBody, class_Object, forAdd);
+                        uroven -= 1;
+                        elseBodyKey = highestKey;
+                        last_if_else_bodyKeys.Add(elseBodyKey);
+                        class_Object.commandEdges[forAdd][ifBodyKey].Add(elseBodyKey + 1, "normal");
+                    }
+                    //case classic construction if ifBody else !containElseBody
+                    if (containIfBody && containElse && !containElseBody)
+                    {
+                        int ifBodyKey = -1;
+                        int elseKey = -1;
 
-                        if (elseBody != null && elseBody.Count > 0)
-                        {
-                            parseCommands(elseBody, class_Object, forAdd);
-                        }
-                        class_Object.closeIfElse[forAdd].Add(elseKey,highestKey+1);
+                        //workifbody
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        uroven += 1;
+                        parseCommands(body, class_Object, forAdd);
+                        uroven -= 1;
+                        ifBodyKey = highestKey;
+                        last_if_else_bodyKeys.Add(ifBodyKey);
+
+                        //workelseCondition
+                        highestKey++;
+                        urovne.Add(highestKey, uroven);
+                        elseKey = highestKey;
+                        last_if_else_bodyKeys.Add(elseKey);
+                        class_Object.methodCommands[forAdd].Add("else");
+
+                        class_Object.commandKeys[forAdd].Add(highestKey, "else");
+
+                        class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                        class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+                        class_Object.commandEdges[forAdd][ifConditionKey].Add(elseKey, "normal");
+                        if (class_Object.commandEdges[forAdd].ContainsKey(ifBodyKey) && class_Object.commandEdges[forAdd][ifBodyKey].ContainsKey(elseKey)) { class_Object.commandEdges[forAdd][ifBodyKey].Remove(elseKey); }
+
+                        class_Object.commandEdges[forAdd][ifBodyKey].Add(elseKey + 1, "normal");
                     }
-                    if (!command.ContainsKey("ElseBody") && conditionKey != highestKey)
+                    //case classic construction if ifBody else containElseBody
+                    if (containIfBody && !containElse && !containElseBody)
                     {
-                        class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
-                        class_Object.closeIfElse[forAdd].Add(conditionKey,highestKey + 1);
+                        last_if_else_bodyKeys.Add(ifConditionKey);
+                        int ifBodyKey = -1;
+                        //workifbody
+                        var body = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(
+                            JsonConvert.SerializeObject(command["Body"], Formatting.Indented));
+                        uroven += 1;
+                        parseCommands(body, class_Object, forAdd);
+                        uroven -= 1;
+                        ifBodyKey = highestKey;
+                        last_if_else_bodyKeys.Add(ifBodyKey);
+                        class_Object.commandEdges[forAdd][ifConditionKey].Add(ifBodyKey + 1, "normal");
                     }
-                    if (lastIfBodyKey != -1)
+                    //case classic construction if ifBody else containElseBody
+                    if (!containIfBody && containElse && containElseBody)
                     {
-                        class_Object.commandEdges[forAdd][lastIfBodyKey].Remove(lastIfBodyKey + 1);
-                        class_Object.commandEdges[forAdd][lastIfBodyKey].Add(highestKey + 1, "normal");
+                        int elseKey = -1;
+                        int elseBodyKey = -1;
+
+                        //workelseCondition
+                        highestKey++;
+                        urovne.Add(highestKey, uroven);
+                        elseKey = highestKey;
+                        class_Object.methodCommands[forAdd].Add("else");
+
+                        class_Object.commandKeys[forAdd].Add(highestKey, "else");
+
+                        class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                        class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+
+                        //workElseBody
+                        var elseBody = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(JsonConvert.SerializeObject(command["ElseBody"], Formatting.Indented));
+                        uroven -= 1;
+                        parseCommands(elseBody, class_Object, forAdd);
+                        uroven += 1;
+                        elseBodyKey = highestKey;
+                        last_if_else_bodyKeys.Add(elseBodyKey);
+
+                        class_Object.commandEdges[forAdd][ifConditionKey].Add(elseBodyKey + 1, "normal");
                     }
+                }
+                //case classic construction if ifBody else containElseBody
+                if (!containIfBody && containElse && !containElseBody)
+                {
+                    int elseKey = -1;
+                    //workelseCondition
+                    highestKey++;
+                    urovne.Add(highestKey, uroven);
+                    elseKey = highestKey;
+                    last_if_else_bodyKeys.Add(elseKey);
+                    class_Object.methodCommands[forAdd].Add("else");
+                    class_Object.commandKeys[forAdd].Add(highestKey, "else");
+                    class_Object.commandEdges[forAdd].Add(highestKey, new Dictionary<int, string>());
+                    class_Object.commandEdges[forAdd][highestKey].Add(highestKey + 1, "normal");
+
+                    class_Object.commandEdges[forAdd][ifConditionKey].Add(elseKey + 1, "normal");
                 }
             }
             else if (typeOfComand.Equals("Statement"))
@@ -694,6 +902,8 @@ public class Reading_graph
                     class_Object.methodCommands[forAdd].Add(line);
 
                     highestKey++;
+
+                    urovne.Add(highestKey, uroven);
 
                     class_Object.commandKeys[forAdd].Add(highestKey, line);
 
@@ -862,4 +1072,5 @@ public class Reading_graph
         if (modifiers.Any(SyntaxKind.PrivateKeyword)) return "private";
         return "internal";
     }
+
 }
