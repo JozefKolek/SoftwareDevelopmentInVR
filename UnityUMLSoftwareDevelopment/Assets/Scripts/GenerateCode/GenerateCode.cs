@@ -17,6 +17,7 @@ public class GenerateCode : MonoBehaviour
     public GameObject canvas;
     public GameObject CompilationCanvas;
     public GameObject Result;
+    public GameObject ErrorOutput;
     public GameObject CloseButton;
     public List<Class_object> class_Objects;
     public List<string> output = new List<string>();
@@ -27,8 +28,9 @@ public class GenerateCode : MonoBehaviour
     public Dictionary<int, string> commandTypes;
     public Dictionary<int, string> mergeTypes;
     public Dictionary<string, List<string>> outputClassFiles = new Dictionary<string, List<string>>();
-    string dllPath = "C:/Users/Admin/Desktop/Preoutput/compiledScripts.dll"; // Cesta, kam uložíš DLL
-
+    string preoutputPath = "../Preoutput/";
+    string dllPath = @"../Preoutput/compiledScripts.dll"; // Cesta, kam uložíš DLL
+    public List<string> OutputError = new List<string>();
     public void initialise(List<Class_object> classObjects, Canvas canvasObj)
     {
         this.classObjects = classObjects;
@@ -41,6 +43,24 @@ public class GenerateCode : MonoBehaviour
     {
         CompilationCanvas.SetActive(false);
         canvas.SetActive(true);
+        
+        OutputError = new List<string>();
+        ErrorOutput.SetActive(false);
+        ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = "";
+
+
+        foreach(var component in Result.GetComponents<Component>())
+        {
+            if(!(component is RectTransform)){Destroy(component);}
+        }
+        List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas"};
+        
+        string[] files = Directory.GetFiles(preoutputPath);
+        foreach (string file in files)
+        {
+            File.Delete(file);
+            Debug.Log("Deleted: " + file);
+        }
     }
 
     public void generateCode()
@@ -108,12 +128,12 @@ public class GenerateCode : MonoBehaviour
             output.Add("}");
             if (!outputClassFiles.ContainsKey(claz.name)) { outputClassFiles.Add(claz.name, output); }
         }
-        string folder = "C:/Users/Admin/Desktop/Preoutput/";
+        string folder = preoutputPath;
         foreach(var file in Directory.GetFiles(folder, "*.cs")){File.Delete(file);}
         Debug.Log("Vysledok");
         foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
         {
-            string filePath = "C:/Users/Admin/Desktop/Preoutput/" + file.Key + ".cs";
+            string filePath = preoutputPath + file.Key + ".cs";
             try
             {
                 File.Delete(filePath);
@@ -124,13 +144,20 @@ public class GenerateCode : MonoBehaviour
                 Console.WriteLine("An error occurred while writting to the file");
             }            
         }
-        if (CompileUnityScriptsInFolder("C:/Users/Admin/Desktop/Preoutput/"))
+        if (CompileUnityScriptsInFolder(preoutputPath))
         {
             canvas.SetActive(false);
             CompilationCanvas.SetActive(true);
+            ErrorOutput.SetActive(false);
             AttachScriptToGameObject(Result);            
+        } else
+        {
+            canvas.SetActive(false);
+            CompilationCanvas.SetActive(true);
+            ErrorOutput.SetActive(true);
+            ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = string.Join('\n', OutputError);
         }
-        
+
     }    
     public void generateMethodCode(Class_object class_Object,string method)
     {
@@ -520,12 +547,11 @@ public class GenerateCode : MonoBehaviour
 
             if (!result.Success)
             {
-                Debug.Log("Chyby pri kompilácii Unity skriptov:");
+                OutputError.Add("Chyby pri kompilácii Unity skriptov:");
                 foreach (var chyba in result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error))
                 {
-                    Debug.Log(chyba.ToString());
+                    OutputError.Add(chyba.ToString());
                 }
-
                 return false;
             }
         }

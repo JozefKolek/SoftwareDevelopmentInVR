@@ -15,7 +15,7 @@ using Microsoft.Msagl.Core;
 public class UML_class_diagram : MonoBehaviour
 {
 
-    Reading_graph read = new Reading_graph("C:/Users/Admin/Desktop/SampleCode/");
+    Reading_graph read = new Reading_graph(@"../SampleCode/");
     //Reading_graph read = new Reading_graph("Assets/SampleCode/RotatingSphere.cs");
     //Reading_graph read = new Reading_graph("C:/Users/Admin/Desktop/RotatingSphere.cs");
     public List<Class_object> classObjects;
