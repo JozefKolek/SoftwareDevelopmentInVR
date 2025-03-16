@@ -170,6 +170,7 @@ public class UML_class_diagram : MonoBehaviour
                 if (targetClass != null && targetClass.UInode != null)
                 {
                     DrawConnectionLine(classObj.UInode.transform, targetClass.UInode.transform, classObj, targetClass);
+                    classObj.UIedges[targetClass.name].GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
                 }
             }
         }
@@ -183,7 +184,10 @@ public class UML_class_diagram : MonoBehaviour
     {
         // Instantiate the line prefab
         GameObject lineInstance = Instantiate(linePrefab, content.transform);
-        lineInstance.GetComponent<Transform>().position = new Vector3(0,0,0);
+        RectTransform lineRect = lineInstance.GetComponent<RectTransform>();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(lineRect);
+        lineRect.position = new Vector3(0,0,0);
+        lineRect.anchoredPosition = Vector2.zero;
         lineInstance.name = "Edge_" + startClass.name + "_" + endClass.name;
         startClass.UIedges.Add(endClass.name, lineInstance);
 
@@ -294,7 +298,7 @@ public class UML_class_diagram : MonoBehaviour
         }
 
         Canvas.ForceUpdateCanvases();
-        StartCoroutine(GenerateUMLDiagram());        
+        StartCoroutine(GenerateUMLDiagram());
     }
 
 
@@ -304,6 +308,8 @@ public class UML_class_diagram : MonoBehaviour
         addClassPopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add class to graph";
         addClassPopUp.SetActive(true);
         addClassPopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddClassToGraph(addClassPopUp));
+        addClassPopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addClassPopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUp.SetActive(false)) ;
     }
 
     private void AddClassToGraph(GameObject addClassPopUp)
@@ -313,6 +319,10 @@ public class UML_class_diagram : MonoBehaviour
         Class_object classObj = new Class_object(claz_name);
         //docasne
         classObj.visibility = "public";
+        classObj.type = "class";
+        classObj.connections.Add("MonoBehaviour", "Generalisation");
+        classObj.usings.Add("UnityEngine");
+        classObj.usings.Add("UnityEngine.UI");
         classObjects.Add(classObj);
         redrawGraph();
     }
@@ -321,6 +331,8 @@ public class UML_class_diagram : MonoBehaviour
     internal void AddEdge(string name)
     {
         addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to class";
+        addEdgePopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addEdgePopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addEdgePopUp.SetActive(false));
         List<string> classes = new List<string>();
         foreach (var claz in classObjects) { if (!claz.name.Equals(name)) { classes.Add(claz.name); } }        
         foreach (var claz in classObjects)
@@ -425,12 +437,14 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             List<string> target_classes = new List<string>();
-            foreach (var target in classObj.connections.Keys) { target_classes.Add(target); }
+            foreach (var target in classObj.connections.Keys) { if (!target.Equals("MonoBehaviour")) { target_classes.Add(target); } }
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
             targetClassesMenu.ClearOptions();
             targetClassesMenu.AddOptions(target_classes);
             removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge from class";
             removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(name));
+            removeEdgePopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+            removeEdgePopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => removeEdgePopUp.SetActive(false));
             if (target_classes.Count > 0) { removeEdgePopUp.SetActive(true);}
         }
     }

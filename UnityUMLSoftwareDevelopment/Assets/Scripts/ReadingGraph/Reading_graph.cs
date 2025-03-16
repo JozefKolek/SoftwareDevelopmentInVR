@@ -698,8 +698,15 @@ public class Reading_graph
                     }
                     if (highestKey != conditionKey)
                     {
+                        int loopKey = conditionKey;
+
                         class_Object.commandEdges[forAdd][conditionKey].Add(highestKey + 1, "normal");
 
+                        if(urovne[highestKey]-1 == urovne[conditionKey] && !class_Object.commandKeys[forAdd][highestKey].Equals("else"))
+                        {
+                            loopKey = highestKey;
+                            Debug.Log(forAdd + " ma loop key");
+                        }
                         class_Object.commandEdges[forAdd][highestKey].Remove(highestKey + 1);
                         class_Object.commandEdges[forAdd][highestKey].Add(conditionKey, "normal");
                         Dictionary<int,int> forEdit = new Dictionary<int, int>();
@@ -723,7 +730,7 @@ public class Reading_graph
                         {
                             last_if_else_bodyKeys.Remove(removed.Key);
                             class_Object.commandEdges[forAdd][removed.Key].Remove(removed.Value);
-                            class_Object.commandEdges[forAdd][removed.Key].Add(conditionKey, "normal");
+                            class_Object.commandEdges[forAdd][removed.Key].Add(loopKey, "normal");
                         }
                     }
                 }

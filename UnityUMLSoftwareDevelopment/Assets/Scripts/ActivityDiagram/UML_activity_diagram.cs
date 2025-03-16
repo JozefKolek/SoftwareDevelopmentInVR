@@ -251,6 +251,10 @@ public class UML_activity_diagram : MonoBehaviour
         MsaglActionNodes.Clear();
         Canvas.ForceUpdateCanvases();
         StartCoroutine(drawDiagram());
+        foreach(var hrana in actionEdges.Keys)
+        {
+            actionEdges[hrana].GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
+        }
     }
 
     private void CloseActivityDiagram()
@@ -272,6 +276,8 @@ public class UML_activity_diagram : MonoBehaviour
         addClassPopUP.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add Action to Activity";
         addClassPopUP.SetActive(true);
         addClassPopUP.GetComponentInChildren<Button>().onClick.AddListener(() => AddClassToGraph());
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUP.SetActive(false));
     }
 
     private void AddClassToGraph()
@@ -286,7 +292,8 @@ public class UML_activity_diagram : MonoBehaviour
     internal void addEdge(int key)
     {
         addEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add edge to action node";
-        List<string> connections = new List<string> { "generalization", "aggergation" };
+        addEdgePopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addEdgePopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addEdgePopUp.SetActive(false));
         List<string> classes = new List<string>();
         foreach (var vrchol in clasa.commandKeys[method])
         {
@@ -306,8 +313,6 @@ public class UML_activity_diagram : MonoBehaviour
         TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
         dropdowns[0].ClearOptions();
         dropdowns[0].AddOptions(classes);
-        dropdowns[1].ClearOptions();
-        dropdowns[1].AddOptions(connections);
 
         if(classes.Count > 0) { addEdgePopUp.SetActive(true); }
         addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(key));
@@ -321,11 +326,10 @@ public class UML_activity_diagram : MonoBehaviour
         {
             TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
             string targetClass = dropdowns[0].options[dropdowns[0].value].text;
-            string connection = dropdowns[1].options[dropdowns[1].value].text;
             int targetIndex = Int32.Parse(targetClass.Split(" ")[0]);
             if (actionNodes.ContainsKey(targetIndex))
             {
-                class_Diagram.AddActionEdge(key, targetIndex, method, connection, clasa.name);
+                class_Diagram.AddActionEdge(key, targetIndex, method, "normal", clasa.name);
                 RedrawDiagram();
             }
         }
@@ -362,7 +366,9 @@ public class UML_activity_diagram : MonoBehaviour
             targetClassesMenu.AddOptions(target_classes);
             removeEdgePopUp.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Remove edge";
             removeEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => RemoveEdgeFromGraph(key));
-            if(target_classes.Count > 0) { removeEdgePopUp.SetActive(true);}
+            removeEdgePopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+            removeEdgePopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => removeEdgePopUp.SetActive(false));
+            if (target_classes.Count > 0) { removeEdgePopUp.SetActive(true);}
         }        
     }
 

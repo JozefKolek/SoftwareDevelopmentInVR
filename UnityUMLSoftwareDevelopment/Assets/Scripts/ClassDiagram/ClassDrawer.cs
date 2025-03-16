@@ -122,6 +122,8 @@ public class ClassDrawer : MonoBehaviour
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add method to class";
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddMethodToClass(name, addMetOrAt));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
     }
 
     private void AddMethodToClass(string name, GameObject addMetOrAt)
@@ -137,6 +139,8 @@ public class ClassDrawer : MonoBehaviour
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add attribute to class";
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddAttributeToClass(name, addMetOrAt));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
     }
 
     private void AddAttributeToClass(string name, GameObject addMetOrAt)
