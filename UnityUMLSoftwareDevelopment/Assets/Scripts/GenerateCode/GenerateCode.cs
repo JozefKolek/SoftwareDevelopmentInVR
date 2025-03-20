@@ -11,6 +11,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Reflection;
 using UnityEditor;
+using UnityEngine.SceneManagement;
 
 public class GenerateCode : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class GenerateCode : MonoBehaviour
     public GameObject Result;
     public GameObject ErrorOutput;
     public GameObject CloseButton;
+    public GameObject SaveButton;
     public List<Class_object> class_Objects;
     public List<string> output = new List<string>();
     private List<Class_object> classObjects;
@@ -36,7 +38,8 @@ public class GenerateCode : MonoBehaviour
         this.classObjects = classObjects;
         this.canvasObj = canvasObj;
         
-        CloseButton.GetComponent<Button>().onClick.AddListener(() => closeCanvas());        
+        CloseButton.GetComponent<Button>().onClick.AddListener(() => closeCanvas());
+        SaveButton.GetComponent<Button>().onClick.AddListener(() => saveFile());
     }
 
     private void closeCanvas()
@@ -54,7 +57,15 @@ public class GenerateCode : MonoBehaviour
             if(!(component is RectTransform)){Destroy(component);}
         }
         List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas"};
-        
+        GameObject[] rootObjects = SceneManager.GetActiveScene().GetRootGameObjects();
+        foreach (GameObject obj in rootObjects)
+        {
+            if (!forStay.Contains(obj.name))
+            {
+                Destroy(obj);
+            }                            
+        }
+
         string[] files = Directory.GetFiles(preoutputPath);
         foreach (string file in files)
         {
@@ -63,6 +74,27 @@ public class GenerateCode : MonoBehaviour
         }
     }
 
+    public void saveFile()
+    {        
+        string[] files = Directory.GetFiles(@"../SampleCode/");
+        foreach (string file in files)
+        {
+            File.Delete(file);
+            Debug.Log("Deleted: " + file);
+        }
+        foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
+        {
+            string filePath = @"../SampleCode/" + file.Key + ".cs";
+            try
+            {
+                File.WriteAllLines(filePath, file.Value);
+            }
+            catch (IOException)
+            {
+                Console.WriteLine("An error occurred while writting to the file");
+            }
+        }
+    }
     public void generateCode()
     {               
         this.class_Objects = classObjects;
