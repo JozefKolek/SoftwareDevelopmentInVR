@@ -47,6 +47,12 @@ public class ClassDrawer : MonoBehaviour
             removeAttributeButtonText.GetComponent<TMP_Text>().text = "-";
             removeAttributeButtonText.fontSize = 32;
             removeAttributeButton.GetComponent<Button>().onClick.AddListener(() => RemoveAttribute(container, attribute, classObj.name));
+            GameObject editAttributeButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            editAttributeButton.GetComponent<Image>().color = Color.yellow;
+            TextMeshProUGUI editAttributeButtonText = editAttributeButton.GetComponentInChildren<TextMeshProUGUI>();
+            editAttributeButtonText.GetComponent<TMP_Text>().text = "edit";
+            editAttributeButtonText.fontSize = 32;
+            editAttributeButton.GetComponent<Button>().onClick.AddListener(() => ForEditMetOrAtt(addMethodOrClass,true,attribute,classObj.name));
         }
 
         // Methods section
@@ -63,6 +69,12 @@ public class ClassDrawer : MonoBehaviour
             removemethodButtonText.GetComponent<TMP_Text>().text = "-";
             removemethodButtonText.fontSize = 32;
             removemethodButton.GetComponent<Button>().onClick.AddListener(() => RemoveMethod(container, method, classObj.name));
+            GameObject editmethodButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            editmethodButton.GetComponent<Image>().color = Color.yellow;
+            TextMeshProUGUI editmethodButtonText = editmethodButton.GetComponentInChildren<TextMeshProUGUI>();
+            editmethodButtonText.GetComponent<TMP_Text>().text = "edit";
+            editmethodButtonText.fontSize = 32;
+            editmethodButton.GetComponent<Button>().onClick.AddListener(() => ForEditMetOrAtt(addMethodOrClass, false, method, classObj.name));
         }
 
         GameObject addContainer = Instantiate(atOrMetContainerPrefab, mainPanel.transform);
@@ -112,6 +124,28 @@ public class ClassDrawer : MonoBehaviour
         return mainPanel;
     }
 
+    private void ForEditMetOrAtt(GameObject addMetOrAt, bool isAtt, string edit, string name)
+    {
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = edit;
+        addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit method";
+        if (isAtt)
+        {
+            addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit attribute";
+        }
+        addMetOrAt.SetActive(true);
+        addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => EditMetOrAtt(addMetOrAt,isAtt,name,edit));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
+    }
+
+    private void EditMetOrAtt(GameObject addMetOrAt, bool isAtt, string name, string origin)
+    {
+        addMetOrAt.SetActive(false);
+        string forEdit = addMetOrAt.GetComponentInChildren<TMP_InputField>().text;
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = "";
+        umlManager.EditMethodOrAttribute(isAtt, forEdit, name,origin);
+    }
+
     private void AddEdge(string name)
     {
         umlManager.AddEdge(name);
@@ -119,6 +153,7 @@ public class ClassDrawer : MonoBehaviour
 
     private void AddMethod(string name, GameObject addMetOrAt)
     {
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = "";
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add method to class";
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddMethodToClass(name, addMetOrAt));
@@ -136,6 +171,7 @@ public class ClassDrawer : MonoBehaviour
 
     private void AddAttribute(string name, GameObject addMetOrAt)
     {
+        addMetOrAt.GetComponentInChildren<TMP_InputField>().text = "";
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add attribute to class";
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddAttributeToClass(name, addMetOrAt));

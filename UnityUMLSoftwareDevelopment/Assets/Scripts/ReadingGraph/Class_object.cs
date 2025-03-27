@@ -14,8 +14,7 @@ public class Class_object
     public List<string> usings = new List<string>();
     public Dictionary<string, List<string>> methodCommands = new Dictionary<string, List<string>>();
     public Dictionary<string,Dictionary<int, string>> commandKeys = new Dictionary<string, Dictionary<int, string>>();
-    public Dictionary<string, Dictionary<int, Dictionary<int,string>>> commandEdges = new Dictionary<string, Dictionary<int, Dictionary<int, string>>>();
-    public Dictionary<string, Dictionary<int, int>> closeIfElse = new Dictionary<string, Dictionary<int, int>>();
+    public Dictionary<string, Dictionary<int, Dictionary<int,string>>> commandEdges = new Dictionary<string, Dictionary<int, Dictionary<int, string>>>();  
 
     public GameObject UInode;
     public Node vrchol;

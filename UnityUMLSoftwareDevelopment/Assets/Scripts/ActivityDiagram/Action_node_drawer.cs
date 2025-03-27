@@ -29,6 +29,13 @@ public class Action_node_drawer : MonoBehaviour
         addEdgeText.GetComponent<TMP_Text>().text = "Add Edge";
         addEdgeButton.GetComponent<Button>().onClick.AddListener(() => AddEdge(key));
 
+        GameObject editButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, node.transform);
+        editButton.GetComponent<Image>().color = Color.yellow;
+        TextMeshProUGUI editButtonText = editButton.GetComponentInChildren<TextMeshProUGUI>();
+        editButtonText.GetComponent<TMP_Text>().fontSize = 20;
+        editButtonText.GetComponent<TMP_Text>().text = "Edit Action Node";
+        editButton.GetComponent<Button>().onClick.AddListener(() => editActionNode(key));
+
         GameObject removeButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, node.transform);
         TextMeshProUGUI removeButtonText = removeButton.GetComponentInChildren<TextMeshProUGUI>();        
         removeButtonText.GetComponent<TMP_Text>().fontSize = 20;
@@ -50,7 +57,12 @@ public class Action_node_drawer : MonoBehaviour
 
         return node;
     }
-   
+
+    private void editActionNode(int key)
+    {
+        activityManager.editActionNode(key);
+    }
+
     private void AddEdge(int key)
     {
         activityManager.addEdge(key);

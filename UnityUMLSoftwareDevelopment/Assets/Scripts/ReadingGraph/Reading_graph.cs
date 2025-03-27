@@ -189,7 +189,6 @@ public class Reading_graph
                             class_Object.methodCommands.Add(forAdd, new List<string>());
                             class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
                             class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
-                            class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
                             Debug.Log("som konstr?");
                             if (constructor.ContainsKey("Commands"))
                             {
@@ -317,7 +316,6 @@ public class Reading_graph
                             class_Object.methodCommands.Add(forAdd, new List<string>());
                             class_Object.commandKeys.Add(forAdd, new Dictionary<int, string>());
                             class_Object.commandEdges.Add(forAdd, new Dictionary<int, Dictionary<int, string>>());
-                            class_Object.closeIfElse.Add(forAdd, new Dictionary<int, int>());
                             //include commands
                             if (method.ContainsKey("Commands"))
                             {

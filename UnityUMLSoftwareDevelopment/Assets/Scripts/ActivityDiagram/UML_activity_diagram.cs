@@ -165,7 +165,7 @@ public class UML_activity_diagram : MonoBehaviour
         yield return null;
         yield return null;
         yield return null;
-    }
+    }    
 
     private void DrawConnectionLine(string edgeFromTo)
     {
@@ -274,6 +274,7 @@ public class UML_activity_diagram : MonoBehaviour
     private void AddClass()
     {
         addClassPopUP.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Add Action to Activity";
+        addClassPopUP.GetComponentInChildren<TMP_InputField>().text = "";
         addClassPopUP.SetActive(true);
         addClassPopUP.GetComponentInChildren<Button>().onClick.AddListener(() => AddClassToGraph());
         addClassPopUP.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
@@ -284,6 +285,7 @@ public class UML_activity_diagram : MonoBehaviour
     {
         addClassPopUP.SetActive(false);
         string claz_name = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;
+        addClassPopUP.GetComponentInChildren<TMP_InputField>().text = "";
         int index = class_Diagram.AddActivityNode(claz_name, method, clasa.name);
         RedrawDiagram();
     }
@@ -333,6 +335,25 @@ public class UML_activity_diagram : MonoBehaviour
                 RedrawDiagram();
             }
         }
+    }
+
+    internal void editActionNode(int key)
+    {
+        addClassPopUP.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit Action Node";
+        addClassPopUP.GetComponentInChildren<TMP_InputField>().text = clasa.commandKeys[method][key];
+        addClassPopUP.SetActive(true);
+        addClassPopUP.GetComponentInChildren<Button>().onClick.AddListener(() => ChangeActionNode(key));
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUP.SetActive(false));
+    }
+
+    private void ChangeActionNode(int key)
+    {
+        addClassPopUP.SetActive(false);
+        string actionNode = addClassPopUP.GetComponentInChildren<TMP_InputField>().text;
+        addClassPopUP.GetComponentInChildren<TMP_InputField>().text = "";
+        class_Diagram.editActionNode(clasa.name, method, key, actionNode);
+        redrawNode(key);
     }
 
     //remove Node
@@ -392,6 +413,22 @@ public class UML_activity_diagram : MonoBehaviour
                 RedrawDiagram();
             }
         }
+    }
+
+    internal void redrawNode(int key)
+    {
+        GameObject redrawedNode = actionNode.DrawAction(clasa.commandKeys[method][key],key);
+        RectTransform rectTransform = redrawedNode.GetComponent<RectTransform>();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(rectTransform);
+        rectTransform.anchoredPosition = actionNodes[key].GetComponent<RectTransform>().anchoredPosition;
+        DraggableUI draggableUI = redrawedNode.GetComponent<DraggableUI>();
+        if (draggableUI != null)
+        {
+            draggableUI.activity_Diagram = this; // Set the UML diagram reference
+        }
+        Destroy(actionNodes[key]);
+        actionNodes[key] = redrawedNode;
+        rerouteGraph();
     }
 
     //after drag and drop reroute edges and nodes in msagl

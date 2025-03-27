@@ -352,7 +352,7 @@ public class UML_class_diagram : MonoBehaviour
 
         if (classes.Count != 0) { addEdgePopUp.SetActive(true);}        
         addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(name));
-    }
+    }    
 
     private void AddEdgeToGraph(string name)
     {
@@ -381,7 +381,6 @@ public class UML_class_diagram : MonoBehaviour
             classObj.methodCommands.Add(method, new List<string>());
             classObj.commandKeys.Add(method, new Dictionary<int, string>());
             classObj.commandEdges.Add(method, new Dictionary<int, Dictionary<int, string>>());
-            classObj.closeIfElse.Add(method, new Dictionary<int, int>());
 
             classObj.commandKeys[method].Add(1, "start");
             classObj.commandKeys[method].Add(0, "end");
@@ -404,6 +403,58 @@ public class UML_class_diagram : MonoBehaviour
         }
     }
 
+    internal void EditMethodOrAttribute(bool isAtt, string forEdit, string name, string origin)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {
+            if (isAtt)
+            {
+                if(!forEdit.Equals(origin) && classObj.attributes.Contains(origin))
+                {
+                    classObj.attributes.Remove(origin);
+                    classObj.attributes.Add(forEdit);
+                    redrawNode(classObj);
+                }
+            } else
+            {
+                if (!forEdit.Equals(origin) && classObj.methods.Contains(origin))
+                {
+                    classObj.methods.Remove(origin);
+                    classObj.methods.Add(forEdit);
+                    if (classObj.methodCommands.ContainsKey(origin) && !classObj.methodCommands.ContainsKey(forEdit))
+                    {
+                        List<string> commands = classObj.methodCommands[origin];
+                        classObj.methodCommands.Remove(origin);
+                        classObj.methodCommands.Add(forEdit, commands);
+                    }
+                    if(classObj.commandKeys.ContainsKey(origin) && !classObj.commandKeys.ContainsKey(forEdit))
+                    {
+                        Dictionary<int, string> commandKeys = classObj.commandKeys[origin];
+                        classObj.commandKeys.Remove(origin);
+                        classObj.commandKeys.Add(forEdit, commandKeys);
+                    }
+                    if(classObj.commandEdges.ContainsKey(origin) && !classObj.commandEdges.ContainsKey(forEdit))
+                    {
+                        Dictionary<int, Dictionary<int, string>> commandEdges = classObj.commandEdges[origin];
+                        classObj.commandEdges.Remove(origin);
+                        classObj.commandEdges.Add(forEdit,commandEdges);
+                    }
+                    redrawNode(classObj);
+                }
+            }
+        }
+    }
+
+    internal void editActionNode(string name, string method, int key, string actionNode)
+    {
+        Class_object classObj = classObjects.Find(obj => obj.name == name);
+        if (classObj != null)
+        {
+            classObj.commandKeys[method][key] = actionNode;
+        }
+    }
+
     //remove method from class
     public void RemoveMethodFromClass(string className, string method)
     {
@@ -414,7 +465,6 @@ public class UML_class_diagram : MonoBehaviour
             classObj.methodCommands.Remove(method);
             classObj.commandKeys.Remove(method);
             classObj.commandEdges.Remove(method);
-            classObj.closeIfElse.Remove(method);
             redrawNode(classObj);
         }        
     }
