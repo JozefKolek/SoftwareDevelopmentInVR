@@ -17,6 +17,7 @@ public class UML_activity_diagram : MonoBehaviour
 {
     public GameObject canvasObj;
     public GameObject ClassCanvasObj;
+    public GameObject EditCanvas;
     public GameObject linePrefab;
     public GameObject buttonPrefab;
     public Action_node_drawer actionNode;
@@ -80,12 +81,12 @@ public class UML_activity_diagram : MonoBehaviour
             }
         }
       
-        addClassPopUP = Instantiate(addClassPrefab, content.transform);
+        addClassPopUP = Instantiate(addClassPrefab, EditCanvas.transform);
         addClassPopUP.SetActive(false);
-        addEdgePopUp = Instantiate(addEdgePrefab, content.transform);
+        addEdgePopUp = Instantiate(addEdgePrefab, EditCanvas.transform);
         addEdgePopUp.SetActive(false);
 
-        removeEdgePopUp = Instantiate(removeEdgePrefab, content.transform);
+        removeEdgePopUp = Instantiate(removeEdgePrefab, EditCanvas.transform);
         removeEdgePopUp.SetActive(false);
 
         GameObject AddClassButton = Instantiate(buttonPrefab, content.transform);
@@ -171,7 +172,7 @@ public class UML_activity_diagram : MonoBehaviour
     {
         // Instantiate the line prefab
         GameObject lineInstance = Instantiate(linePrefab, content.transform);
-        lineInstance.GetComponent<Transform>().position = new Vector3(0, 0, 0);
+        lineInstance.GetComponent<Transform>().localPosition = new Vector3(0, 0, 0);
         lineInstance.name = "Edge_" + edgeFromTo;
         
         // Optionally, store the line in the startClass's UIedges dictionary
@@ -318,6 +319,15 @@ public class UML_activity_diagram : MonoBehaviour
 
         if(classes.Count > 0) { addEdgePopUp.SetActive(true); }
         addEdgePopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddEdgeToGraph(key));
+        var widest = 0f;
+        var heighest = 0f;
+        foreach (var item in addEdgePopUp.transform.Find("Dropdown").GetComponentsInChildren<Text>())
+        {
+            widest = Mathf.Max(item.preferredWidth, widest);
+            heighest = Mathf.Max(item.preferredHeight, heighest);
+        }
+        addEdgePopUp.transform.Find("Dropdown").GetComponent<LayoutElement>().preferredWidth = widest + 40;
+        addEdgePopUp.transform.Find("Dropdown").GetComponent<LayoutElement>().preferredHeight = widest + 40;
 
     }
 

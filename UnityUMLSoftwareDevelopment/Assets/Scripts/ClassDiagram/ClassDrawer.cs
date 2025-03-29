@@ -11,6 +11,7 @@ public class ClassDrawer : MonoBehaviour
     public GameObject attributePrefab;      // Prefab for displaying each attribute
     public GameObject methodPrefab;         // Prefab for displaying each method
     public GameObject canvasObj;
+    public GameObject editableCanvas;
     public GameObject buttonPrefab;
     public GameObject addMetOrAt;
     public GameObject atOrMetContainerPrefab;
@@ -23,31 +24,37 @@ public class ClassDrawer : MonoBehaviour
     // Creates a panel for a single Class_object instance
     public GameObject CreateClassPanel(Class_object classObj)
     {
-        GameObject mainPanel = Instantiate(mainPanelPrefab, Vector3.zero, Quaternion.identity, content.transform);
-        GameObject addMethodOrClass = Instantiate(addMetOrAt, content.transform);
+        GameObject mainPanel = Instantiate(mainPanelPrefab, content.transform);
+        mainPanel.transform.localPosition = Vector3.zero;
+        GameObject addMethodOrClass = Instantiate(addMetOrAt, editableCanvas.transform);
 
         addMethodOrClass.SetActive(false);
 
         mainPanel.name = classObj.name;
 
         // Set class name
-        GameObject nameObj = Instantiate(namePrefab, Vector3.zero, Quaternion.identity, mainPanel.transform);
+        GameObject nameObj = Instantiate(namePrefab, mainPanel.transform);
+        nameObj.transform.localPosition = Vector3.zero;
         nameObj.GetComponent<TMP_Text>().text = classObj.name;
 
         // Attributes section
         foreach (string attribute in classObj.attributes)
         {
-            GameObject container = Instantiate(atOrMetContainerPrefab, Vector3.zero, Quaternion.identity, mainPanel.transform);
-            GameObject attributeObj = Instantiate(attributePrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject container = Instantiate(atOrMetContainerPrefab, mainPanel.transform);
+            container.transform.localPosition = Vector3.zero;
+            GameObject attributeObj = Instantiate(attributePrefab, container.transform);
+            attributeObj.transform.localPosition = Vector3.zero;
             TextMeshProUGUI textComponent = attributeObj.GetComponentInChildren<TextMeshProUGUI>();
             textComponent.GetComponent<TMP_Text>().text = attribute;
-            GameObject removeAttributeButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject removeAttributeButton = Instantiate(buttonPrefab, container.transform);
+            removeAttributeButton.transform.localPosition = Vector3.zero;
             removeAttributeButton.GetComponent<Image>().color = Color.green;
             TextMeshProUGUI removeAttributeButtonText = removeAttributeButton.GetComponentInChildren<TextMeshProUGUI>();
             removeAttributeButtonText.GetComponent<TMP_Text>().text = "-";
             removeAttributeButtonText.fontSize = 32;
             removeAttributeButton.GetComponent<Button>().onClick.AddListener(() => RemoveAttribute(container, attribute, classObj.name));
-            GameObject editAttributeButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject editAttributeButton = Instantiate(buttonPrefab, container.transform);
+            editAttributeButton.transform.localPosition = Vector3.zero;
             editAttributeButton.GetComponent<Image>().color = Color.yellow;
             TextMeshProUGUI editAttributeButtonText = editAttributeButton.GetComponentInChildren<TextMeshProUGUI>();
             editAttributeButtonText.GetComponent<TMP_Text>().text = "edit";
@@ -58,18 +65,22 @@ public class ClassDrawer : MonoBehaviour
         // Methods section
         foreach (string method in classObj.methods)
         {
-            GameObject container = Instantiate(atOrMetContainerPrefab, Vector3.zero, Quaternion.identity, mainPanel.transform);
-            GameObject methodObj = Instantiate(methodPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject container = Instantiate(atOrMetContainerPrefab, mainPanel.transform);
+            container.transform.localPosition = Vector3.zero;
+            GameObject methodObj = Instantiate(methodPrefab, container.transform);
+            methodObj.transform.localPosition = Vector3.zero;
             TextMeshProUGUI textComponent = methodObj.GetComponentInChildren<TextMeshProUGUI>();
             textComponent.GetComponent<TMP_Text>().text = method;
             textComponent.GetComponent<Button>().onClick.AddListener(() => displayActivityDiagram(method, classObj));
-            GameObject removemethodButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject removemethodButton = Instantiate(buttonPrefab, container.transform);
+            removemethodButton.transform.localPosition = Vector3.zero;
             removemethodButton.GetComponent<Image>().color = Color.cyan;
             TextMeshProUGUI removemethodButtonText = removemethodButton.GetComponentInChildren<TextMeshProUGUI>();
             removemethodButtonText.GetComponent<TMP_Text>().text = "-";
             removemethodButtonText.fontSize = 32;
             removemethodButton.GetComponent<Button>().onClick.AddListener(() => RemoveMethod(container, method, classObj.name));
-            GameObject editmethodButton = Instantiate(buttonPrefab, Vector3.zero, Quaternion.identity, container.transform);
+            GameObject editmethodButton = Instantiate(buttonPrefab,  container.transform);
+            editmethodButton.transform.localPosition = Vector3.zero;
             editmethodButton.GetComponent<Image>().color = Color.yellow;
             TextMeshProUGUI editmethodButtonText = editmethodButton.GetComponentInChildren<TextMeshProUGUI>();
             editmethodButtonText.GetComponent<TMP_Text>().text = "edit";

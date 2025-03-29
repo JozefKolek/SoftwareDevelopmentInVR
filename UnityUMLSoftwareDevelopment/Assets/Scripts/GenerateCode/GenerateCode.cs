@@ -17,6 +17,7 @@ public class GenerateCode : MonoBehaviour
 {
     public GameObject canvas;
     public GameObject CompilationCanvas;
+    public GameObject EditCanvas;
     public GameObject Result;
     public GameObject ErrorOutput;
     public GameObject CloseButton;
@@ -56,7 +57,7 @@ public class GenerateCode : MonoBehaviour
         {
             if(!(component is RectTransform)){Destroy(component);}
         }
-        List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas"};
+        List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas", "EditableCanvas" };
         GameObject[] rootObjects = SceneManager.GetActiveScene().GetRootGameObjects();
         foreach (GameObject obj in rootObjects)
         {
@@ -72,6 +73,8 @@ public class GenerateCode : MonoBehaviour
             File.Delete(file);
             Debug.Log("Deleted: " + file);
         }
+
+        EditCanvas.SetActive(true);
     }
 
     public void saveFile()

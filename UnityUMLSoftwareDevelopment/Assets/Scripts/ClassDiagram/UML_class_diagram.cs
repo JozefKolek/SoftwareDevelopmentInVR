@@ -21,6 +21,7 @@ public class UML_class_diagram : MonoBehaviour
     public List<Class_object> classObjects;
     public ClassDrawer classDrawer;     // Reference to ClassDrawer script for drawing classes
     public Canvas canvasObj;            // Canvas to hold the panels
+    public Canvas editableCanvas;
     public GameObject linePrefab;       // Line prefab with LineUpdater script attached
     public GameObject buttonPrefab;
     public GameObject addClassPrefab;
@@ -67,9 +68,9 @@ public class UML_class_diagram : MonoBehaviour
     
     public IEnumerator GenerateUMLDiagram()
     {
-        GameObject AddClassPopUp = Instantiate(addClassPrefab, content.transform);
-        addEdgePopUp = Instantiate(addEdgePrefab, content.transform);
-        removeEdgePopUp = Instantiate(removeEdgePrefab, content.transform);
+        GameObject AddClassPopUp = Instantiate(addClassPrefab, editableCanvas.transform);
+        addEdgePopUp = Instantiate(addEdgePrefab, editableCanvas.transform);
+        removeEdgePopUp = Instantiate(removeEdgePrefab, editableCanvas.transform);
 
         AddClassPopUp.SetActive(false);
         addEdgePopUp.SetActive(false);
@@ -186,7 +187,7 @@ public class UML_class_diagram : MonoBehaviour
         GameObject lineInstance = Instantiate(linePrefab, content.transform);
         RectTransform lineRect = lineInstance.GetComponent<RectTransform>();
         LayoutRebuilder.ForceRebuildLayoutImmediate(lineRect);
-        lineRect.position = new Vector3(0,0,0);
+        lineRect.localPosition = new Vector3(0,0,0);
         lineRect.anchoredPosition = Vector2.zero;
         lineInstance.name = "Edge_" + startClass.name + "_" + endClass.name;
         startClass.UIedges.Add(endClass.name, lineInstance);
