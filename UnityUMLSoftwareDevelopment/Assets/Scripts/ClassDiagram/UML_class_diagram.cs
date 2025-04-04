@@ -312,7 +312,7 @@ public class UML_class_diagram : MonoBehaviour
         addClassPopUp.SetActive(true);
         addClassPopUp.GetComponentInChildren<Button>().onClick.AddListener(() => AddClassToGraph(addClassPopUp));
         addClassPopUp.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addClassPopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUp.SetActive(false)) ;
+        addClassPopUp.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => { addClassPopUp.SetActive(false); keyboard.Close();}) ;
     }
 
     private void AddClassToGraph(GameObject addClassPopUp)

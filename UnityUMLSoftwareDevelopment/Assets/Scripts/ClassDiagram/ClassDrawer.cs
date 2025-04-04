@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using System;
+using MixedReality.Toolkit.UX.Experimental;
 
 public class ClassDrawer : MonoBehaviour
 {
@@ -19,6 +20,7 @@ public class ClassDrawer : MonoBehaviour
 
     public UML_class_diagram umlManager;
     public UML_activity_diagram activity_Diagram;
+    public NonNativeKeyboard keyboard;
     // Canvas to hold the panels
 
     // Creates a panel for a single Class_object instance
@@ -139,6 +141,7 @@ public class ClassDrawer : MonoBehaviour
     {
         addMetOrAt.GetComponentInChildren<TMP_InputField>().text = edit;
         addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit method";
+        keyboard.Text = edit;
         if (isAtt)
         {
             addMetOrAt.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit attribute";
@@ -146,7 +149,7 @@ public class ClassDrawer : MonoBehaviour
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => EditMetOrAtt(addMetOrAt,isAtt,name,edit));
         addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => {addMetOrAt.SetActive(false); keyboard.Close();});        
     }
 
     private void EditMetOrAtt(GameObject addMetOrAt, bool isAtt, string name, string origin)
@@ -169,7 +172,7 @@ public class ClassDrawer : MonoBehaviour
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddMethodToClass(name, addMetOrAt));
         addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => {addMetOrAt.SetActive(false); keyboard.Close();});
     }
 
     private void AddMethodToClass(string name, GameObject addMetOrAt)
@@ -187,7 +190,7 @@ public class ClassDrawer : MonoBehaviour
         addMetOrAt.SetActive(true);
         addMetOrAt.GetComponentInChildren<Button>().onClick.AddListener(() => AddAttributeToClass(name, addMetOrAt));
         addMetOrAt.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addMetOrAt.SetActive(false));
+        addMetOrAt.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => {addMetOrAt.SetActive(false); keyboard.Close();});
     }
 
     private void AddAttributeToClass(string name, GameObject addMetOrAt)

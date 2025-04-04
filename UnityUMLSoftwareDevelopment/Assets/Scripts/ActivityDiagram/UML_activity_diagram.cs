@@ -5,6 +5,7 @@ using Microsoft.Msagl.Core.Layout;
 using Microsoft.Msagl.Core.Routing;
 using Microsoft.Msagl.Layout.Layered;
 using Microsoft.Msagl.Miscellaneous;
+using MixedReality.Toolkit.UX.Experimental;
 using Radishmouse;
 using System;
 using System.Collections;
@@ -26,6 +27,7 @@ public class UML_activity_diagram : MonoBehaviour
     public GameObject removeEdgePrefab;
     public GameObject content;
     public Sprite fullArrow;
+    public NonNativeKeyboard keyboard;
     private GameObject addClassPopUP;
     private GameObject removeEdgePopUp;
     private GameObject addEdgePopUp;
@@ -279,7 +281,7 @@ public class UML_activity_diagram : MonoBehaviour
         addClassPopUP.SetActive(true);
         addClassPopUP.GetComponentInChildren<Button>().onClick.AddListener(() => AddClassToGraph());
         addClassPopUP.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUP.SetActive(false));
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => { addClassPopUP.SetActive(false); keyboard.Close();});
     }
 
     private void AddClassToGraph()
@@ -351,10 +353,11 @@ public class UML_activity_diagram : MonoBehaviour
     {
         addClassPopUP.GetComponentInChildren<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Edit Action Node";
         addClassPopUP.GetComponentInChildren<TMP_InputField>().text = clasa.commandKeys[method][key];
+        keyboard.Text = clasa.commandKeys[method][key];
         addClassPopUP.SetActive(true);
         addClassPopUP.GetComponentInChildren<Button>().onClick.AddListener(() => ChangeActionNode(key));
         addClassPopUP.transform.Find("Button1").GetComponent<Button>().GetComponentInChildren<TextMeshProUGUI>().text = "Close";
-        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => addClassPopUP.SetActive(false));
+        addClassPopUP.transform.Find("Button1").GetComponent<Button>().onClick.AddListener(() => { addClassPopUP.SetActive(false); keyboard.Close();});
     }
 
     private void ChangeActionNode(int key)
