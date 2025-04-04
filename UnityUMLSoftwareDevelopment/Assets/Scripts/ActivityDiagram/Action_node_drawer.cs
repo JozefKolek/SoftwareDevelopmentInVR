@@ -21,6 +21,11 @@ public class Action_node_drawer : MonoBehaviour
         node.transform.localPosition = Vector3.zero;
         node.name = name;
         //set Action name
+        GameObject identifierKey = Instantiate(namePrefab, node.transform);
+        identifierKey.transform.localPosition = Vector3.zero;
+        identifierKey.GetComponent<TMP_Text>().text = "Key " + key;
+        identifierKey.GetComponent<TMP_Text>().fontSize = 34;
+        identifierKey.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
         GameObject action = Instantiate(namePrefab, node.transform);
         action.transform.localPosition = Vector3.zero;
         action.GetComponent<TMP_Text>().text = name;
@@ -31,23 +36,25 @@ public class Action_node_drawer : MonoBehaviour
         TextMeshProUGUI addEdgeText = addEdgeButton.GetComponentInChildren<TextMeshProUGUI>();
         addEdgeText.GetComponent<TMP_Text>().text = "Add Edge";
         addEdgeButton.GetComponent<Button>().onClick.AddListener(() => AddEdge(key));
-
-        GameObject editButton = Instantiate(buttonPrefab, node.transform);
-        editButton.transform.localPosition = Vector3.zero;
-        editButton.GetComponent<Image>().color = Color.yellow;
-        TextMeshProUGUI editButtonText = editButton.GetComponentInChildren<TextMeshProUGUI>();
-        editButtonText.GetComponent<TMP_Text>().fontSize = 20;
-        editButtonText.GetComponent<TMP_Text>().text = "Edit Action Node";
-        editButton.GetComponent<Button>().onClick.AddListener(() => editActionNode(key));
-
-        GameObject removeButton = Instantiate(buttonPrefab, node.transform);
-        removeButton.transform.localPosition = Vector3.zero;
-        TextMeshProUGUI removeButtonText = removeButton.GetComponentInChildren<TextMeshProUGUI>();        
-        removeButtonText.GetComponent<TMP_Text>().fontSize = 20;
-        removeButtonText.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
-        removeButtonText.GetComponent<TMP_Text>().text = "Remove Action Node";
-        removeButton.GetComponent<Button>().onClick.AddListener(() => reomoveActionNode(key,node));
+        if (index != 0 && index != 1)
+        {
+            GameObject editButton = Instantiate(buttonPrefab, node.transform);
+            editButton.transform.localPosition = Vector3.zero;
+            editButton.GetComponent<Image>().color = Color.yellow;
+            TextMeshProUGUI editButtonText = editButton.GetComponentInChildren<TextMeshProUGUI>();
+            editButtonText.GetComponent<TMP_Text>().fontSize = 20;
+            editButtonText.GetComponent<TMP_Text>().text = "Edit Action Node";
+            editButton.GetComponent<Button>().onClick.AddListener(() => editActionNode(key));
         
+            GameObject removeButton = Instantiate(buttonPrefab, node.transform);
+            removeButton.transform.localPosition = Vector3.zero;
+            TextMeshProUGUI removeButtonText = removeButton.GetComponentInChildren<TextMeshProUGUI>();
+            removeButtonText.GetComponent<TMP_Text>().fontSize = 20;
+            removeButtonText.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
+            removeButtonText.GetComponent<TMP_Text>().text = "Remove Action Node";
+            removeButton.GetComponent<Button>().onClick.AddListener(() => reomoveActionNode(key, node));
+        }
+
         GameObject removeEdgeButton = Instantiate(buttonPrefab, node.transform);
         removeEdgeButton.transform.localPosition = Vector3.zero;
         TextMeshProUGUI removeEdgeText = removeEdgeButton.GetComponentInChildren<TextMeshProUGUI>();

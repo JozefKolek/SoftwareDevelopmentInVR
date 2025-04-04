@@ -468,6 +468,7 @@ MonoBehaviour:
   compileCanvasObj: {fileID: 1149527807}
   generateCode: {fileID: 65002990}
   content: {fileID: 2085620248}
+  keyboard: {fileID: 2092445946}
   empyArrow: {fileID: 21300000, guid: d77c3c6691e856b4986327f59161b36d, type: 3}
   emptyDiamond: {fileID: 21300000, guid: 265b248451d84d04bb74be9c31f6dc59, type: 3}
   fullArrow: {fileID: 21300000, guid: bca515f841fab5b4684e433aa33a188d, type: 3}
@@ -578,7 +579,7 @@ MonoBehaviour:
   m_Content: {fileID: 329347374}
   m_Horizontal: 1
   m_Vertical: 1
-  m_MovementType: 1
+  m_MovementType: 0
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
@@ -688,7 +689,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.00015530761}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &333111793
@@ -1343,7 +1344,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 22458684, guid: 74b589d1efab94a4cb70e4b5c22783f8, type: 3}
       propertyPath: m_RootOrder
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 22458684, guid: 74b589d1efab94a4cb70e4b5c22783f8, type: 3}
       propertyPath: m_AnchorMax.x
@@ -3206,7 +3207,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1675337876}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.99999875
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -3441,6 +3442,17 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 3000, y: 6000}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &2092445946 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 11401954, guid: 74b589d1efab94a4cb70e4b5c22783f8, type: 3}
+  m_PrefabInstance: {fileID: 802211568}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c87b4a5817577d54fa5c9451215f893b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2119618639
 GameObject:
   m_ObjectHideFlags: 0

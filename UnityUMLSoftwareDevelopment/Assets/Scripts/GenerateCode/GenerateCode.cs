@@ -101,6 +101,7 @@ public class GenerateCode : MonoBehaviour
     public void generateCode()
     {               
         this.class_Objects = classObjects;
+        outputClassFiles = new Dictionary<string, List<string>>();
         foreach (Class_object claz in classObjects)
         {
             output = new List<string>();
@@ -204,7 +205,7 @@ public class GenerateCode : MonoBehaviour
         
         generateCommandTypes(start, class_Object, method, 0);
         mergeNodes(class_Object, method);
-        commandTypes.Add(0, "end");
+        if (!commandTypes.ContainsKey(0)) { commandTypes.Add(0, "end"); }
         if (!commandTypes.ContainsKey(1)) { commandTypes.Add(1, "command"); }
         string vypluj = "Metoda " + method;
         foreach(var j in commandTypes)
@@ -214,7 +215,10 @@ public class GenerateCode : MonoBehaviour
         Debug.Log(string.Join('\n',vypluj));
         
         usedKeys = new List<int>();
-        workCommand(start,class_Object,method,0);        
+        if (class_Object.commandKeys[method].ContainsKey(1))
+        {
+            workCommand(start, class_Object, method, 0);
+        }        
     }
     private void mergeNodes(Class_object class_Object, string method)
     {        
@@ -269,6 +273,9 @@ public class GenerateCode : MonoBehaviour
             {
                 commandTypes.Add(fromKey, "if");
             }
+        } else
+        {
+            commandTypes.Add(fromKey,"command");
         }
         foreach(var node in class_Object.commandEdges[method][fromKey])
         {

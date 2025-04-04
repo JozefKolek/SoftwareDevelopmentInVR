@@ -302,14 +302,14 @@ public class UML_activity_diagram : MonoBehaviour
         {
             if (key != vrchol.Key && !gruf[key].ContainsKey(vrchol.Key))
             {
-                classes.Add(vrchol.Key + " " + vrchol.Value);
+                classes.Add(vrchol.Key.ToString());
             }
         }
         foreach (var vrchol in gruf)
         {
             if (gruf[vrchol.Key].ContainsKey(key))
             {
-                classes.Remove(vrchol.Key + " " + clasa.commandKeys[method][vrchol.Key]);
+                classes.Remove(vrchol.Key.ToString());
             }
         }
 
@@ -391,7 +391,7 @@ public class UML_activity_diagram : MonoBehaviour
         if (gruf.ContainsKey(key))
         {
             List<string> target_classes = new List<string>();
-            foreach (var target in gruf[key]) { target_classes.Add(target.Key + " " + clasa.commandKeys[method][target.Key]); }
+            foreach (var target in gruf[key]) { target_classes.Add(target.Key.ToString()); }
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
             targetClassesMenu.ClearOptions();
             targetClassesMenu.AddOptions(target_classes);

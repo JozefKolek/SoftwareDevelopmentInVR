@@ -11,6 +11,7 @@ using System.Collections;
 using Microsoft.Msagl.Core.Geometry;
 using Radishmouse;
 using Microsoft.Msagl.Core;
+using MixedReality.Toolkit.UX.Experimental;
 
 public class UML_class_diagram : MonoBehaviour
 {
@@ -31,6 +32,7 @@ public class UML_class_diagram : MonoBehaviour
     public GameObject compileCanvasObj;
     public GenerateCode generateCode;
     public GameObject content;
+    public NonNativeKeyboard keyboard;
     public Sprite empyArrow;
     public Sprite emptyDiamond;
     public Sprite fullArrow;
@@ -266,7 +268,7 @@ public class UML_class_diagram : MonoBehaviour
                 image.sprite = empyArrow;
             } else if (startClass.connections[endClass.name].Equals("Asociation"))
             {
-                Destroy(lineInstance.transform.Find("ArrowType").gameObject);
+                image.sprite = empyArrow;
             }            
         }
 
@@ -322,9 +324,10 @@ public class UML_class_diagram : MonoBehaviour
         classObj.visibility = "public";
         classObj.type = "class";
         classObj.connections.Add("MonoBehaviour", "Generalisation");
-        classObj.usings.Add("UnityEngine");
-        classObj.usings.Add("UnityEngine.UI");
+        classObj.usings.Add("using UnityEngine;");
+        classObj.usings.Add("using UnityEngine.UI;");
         classObjects.Add(classObj);
+        keyboard.Close();
         redrawGraph();
     }
 
@@ -366,6 +369,7 @@ public class UML_class_diagram : MonoBehaviour
             string connection = dropdowns[1].options[dropdowns[1].value].text;
             if (!classObj.connections.ContainsKey(targetClass))
             {
+                Debug.Log("Prepojenie nove " + targetClass + " " + connection);
                 classObj.connections.Add(targetClass, connection);
                 redrawGraph();
             }            
@@ -388,7 +392,7 @@ public class UML_class_diagram : MonoBehaviour
 
             classObj.commandEdges[method].Add(1, new Dictionary<int, string>());
             classObj.commandEdges[method].Add(0, new Dictionary<int, string>());
-
+            keyboard.Close();
             redrawNode(classObj);
         }
     }
@@ -400,6 +404,7 @@ public class UML_class_diagram : MonoBehaviour
         if (classObj != null)
         {
             classObj.attributes.Add(attribute);
+            keyboard.Close();
             redrawNode(classObj);
         }
     }
@@ -445,6 +450,7 @@ public class UML_class_diagram : MonoBehaviour
                 }
             }
         }
+        keyboard.Close();
     }
 
     internal void editActionNode(string name, string method, int key, string actionNode)
@@ -454,6 +460,7 @@ public class UML_class_diagram : MonoBehaviour
         {
             classObj.commandKeys[method][key] = actionNode;
         }
+        keyboard.Close();
     }
 
     //remove method from class
@@ -510,15 +517,18 @@ public class UML_class_diagram : MonoBehaviour
             string target_class = targetClassesMenu.options[targetClassesMenu.value].text;
             if (fromClass.connections.ContainsKey(target_class))
             {
+                Debug.Log("Odstranil som conneciton");
                 fromClass.connections.Remove(target_class);
             }
             //moze vrzat bo nezda sa mi content slovnikov je to divno
             if (fromClass.hrany.ContainsKey(target_class))
             {
+                Debug.Log("Odstranil som hrnau msagl");
                 fromClass.hrany.Remove(target_class);
             }
             if (fromClass.UIedges.ContainsKey(target_class))
             {
+                Debug.Log("Odstranil som GameObjekt hranu");
                 Destroy(fromClass.UIedges[target_class]);
                 fromClass.UIedges.Remove(target_class);
             }
@@ -559,8 +569,10 @@ public class UML_class_diagram : MonoBehaviour
             classObj.commandKeys[method].Add(newKey + 1, text);
             classObj.methodCommands[method].Add(text);
             classObj.commandEdges[method].Add(newKey + 1, new Dictionary<int, string>());
+            keyboard.Close();
             return newKey + 1;
         }
+        keyboard.Close();
         return -1;
     }
 
@@ -673,10 +685,7 @@ public class UML_class_diagram : MonoBehaviour
                         points.Add(new Vector3((float)p.X * factor - 377, (float)p.Y * factor - 490, 0));
                     }
                 }
-                lineRenderer.points = points.ToArray();
-                lineRenderer.SetVerticesDirty();
-                lineRenderer.Rebuild(CanvasUpdate.PreRender);
-
+                lineRenderer.points = points.ToArray();                
                 try
                 {
                     RectTransform rectTransform =  line.transform.Find("ArrowType").GetComponent<RectTransform>();
@@ -690,6 +699,8 @@ public class UML_class_diagram : MonoBehaviour
                     else if (lineRenderer.points[points.Count - 2].y > lineRenderer.points[points.Count - 1].y) { rectTransform.rotation = Quaternion.Euler(0, 0, -180); }
                     else if (lineRenderer.points[points.Count - 1].y > lineRenderer.points[points.Count - 2].y) { rectTransform.transform.rotation = Quaternion.Euler(0, 0, 0); }
                 } catch{}
+                lineRenderer.SetVerticesDirty();
+                lineRenderer.Rebuild(CanvasUpdate.PreRender);
             }
         }
     }
