@@ -57,7 +57,7 @@ public class GenerateCode : MonoBehaviour
     {
         CompilationCanvas.SetActive(false);
         canvas.SetActive(true);
-        
+        EditCanvas.SetActive(true);
         OutputError = new List<string>();
         ErrorOutput.SetActive(false);
         ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = "";
@@ -192,12 +192,14 @@ public class GenerateCode : MonoBehaviour
         }
         if (CompileUnityScriptsInFolder(preoutputPath))
         {
+            EditCanvas.SetActive(false);
             canvas.SetActive(false);
             CompilationCanvas.SetActive(true);
             ErrorOutput.SetActive(false);
             AttachScriptToGameObject(Result);            
         } else
         {
+            EditCanvas.SetActive(false);
             canvas.SetActive(false);
             CompilationCanvas.SetActive(true);
             ErrorOutput.SetActive(true);
