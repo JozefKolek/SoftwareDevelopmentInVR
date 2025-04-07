@@ -24,7 +24,7 @@ public class Action_node_drawer : MonoBehaviour
         GameObject identifierKey = Instantiate(namePrefab, node.transform);
         identifierKey.transform.localPosition = Vector3.zero;
         identifierKey.GetComponent<TMP_Text>().text = "Key " + key;
-        identifierKey.GetComponent<TMP_Text>().fontSize = 34;
+        identifierKey.GetComponent<TMP_Text>().fontSize = 24;
         identifierKey.GetComponent<TMP_Text>().fontStyle = FontStyles.Bold;
         GameObject action = Instantiate(namePrefab, node.transform);
         action.transform.localPosition = Vector3.zero;

@@ -12,13 +12,12 @@ using Microsoft.Msagl.Core.Geometry;
 using Radishmouse;
 using Microsoft.Msagl.Core;
 using MixedReality.Toolkit.UX.Experimental;
+using System.IO;
 
 public class UML_class_diagram : MonoBehaviour
 {
 
-    Reading_graph read = new Reading_graph(@"../SampleCode/");
-    //Reading_graph read = new Reading_graph("Assets/SampleCode/RotatingSphere.cs");
-    //Reading_graph read = new Reading_graph("C:/Users/Admin/Desktop/RotatingSphere.cs");
+    Reading_graph read;
     public List<Class_object> classObjects;
     public ClassDrawer classDrawer;     // Reference to ClassDrawer script for drawing classes
     public Canvas canvasObj;            // Canvas to hold the panels
@@ -48,15 +47,48 @@ public class UML_class_diagram : MonoBehaviour
     private Transform units;
     private Vector2 lastPosition;
     private ScrollRect scrollRect;
+    private string level;
+    private string temporaryProjectPath;
     private void Start()
     {
         activityCanvasObj.SetActive(false);
-        compileCanvasObj.SetActive(false);
-        classObjects = read.read_from_code();
-        redrawGraph();        
+        compileCanvasObj.SetActive(false);               
         lastPosition = content.GetComponent<RectTransform>().anchoredPosition;
         scrollRect = content.transform.parent.gameObject.GetComponent<ScrollRect>();
         if (scrollRect!= null) { scrollRect.onValueChanged.AddListener(OnScroll); }
+        temporaryProjectPath = Application.persistentDataPath + "/SampleCode/";
+        // Vytvoríme priečinok ak neexistuje
+        if (!Directory.Exists(temporaryProjectPath))
+        {
+            Directory.CreateDirectory(temporaryProjectPath);
+        }
+        Debug.Log("Temporary project path: " + temporaryProjectPath);
+    }
+
+    public void setPath()
+    {
+        canvasObj.gameObject.SetActive(true);
+        activityCanvasObj.SetActive(false);
+        editableCanvas.gameObject.SetActive(true);
+        TMP_Dropdown dropdown = editableCanvas.transform.Find("DropdownPath").GetComponentInChildren<TMP_Dropdown>();
+
+        string uroven = dropdown.options[dropdown.value].text;
+        level = uroven;
+        if (classObjects != null)
+        {
+            foreach (var claz in classObjects)
+            {
+                Destroy(claz.UInode);
+                claz.UInode = null;
+                foreach (KeyValuePair<string, GameObject> edge in claz.UIedges) { Destroy(edge.Value); }
+                claz.UIedges.Clear();
+                claz.hrany.Clear();
+                claz.vrchol = null;
+            }
+        }
+        Reading_graph read = new Reading_graph(temporaryProjectPath + uroven + "/");
+        classObjects = read.read_from_code();
+        redrawGraph();
     }
 
     private void OnScroll (Vector2 scrollPosition)
@@ -91,7 +123,7 @@ public class UML_class_diagram : MonoBehaviour
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
         GameObject GenerateCodeButton = Instantiate(buttonPrefab, content.transform);
-        generateCode.initialise(classObjects, canvasObj);
+        generateCode.initialise(classObjects, canvasObj,level);
         GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.generateCode());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
 

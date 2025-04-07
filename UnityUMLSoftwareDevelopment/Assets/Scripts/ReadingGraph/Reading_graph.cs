@@ -282,7 +282,7 @@ public class Reading_graph
                     {
                         foreach (var method in methods)
                         {
-                            string visibility = method.ContainsKey("Visibility") ? method["Visibility"].ToString() : "Unknown";
+                            string visibility = method.ContainsKey("Visibility") && method["Visibility"]?.ToString() != "Unknown" ? method["Visibility"].ToString() : "Unknown";
                             string returnType = method.ContainsKey("ReturnType") ? method["ReturnType"].ToString() : "Unknown";
                             string name = method.ContainsKey("Name") ? method["Name"].ToString() : "Unknown";
                             bool isOveride = method.ContainsKey("IsOverride") ? (bool)method["IsOverride"] : false;
@@ -1075,7 +1075,7 @@ public class Reading_graph
         if (modifiers.Any(SyntaxKind.PublicKeyword)) return "public";
         if (modifiers.Any(SyntaxKind.ProtectedKeyword)) return "protected";
         if (modifiers.Any(SyntaxKind.PrivateKeyword)) return "private";
-        return "internal";
+        return "Unknown";
     }
 
 }

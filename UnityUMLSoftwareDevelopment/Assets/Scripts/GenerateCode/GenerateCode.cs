@@ -31,14 +31,24 @@ public class GenerateCode : MonoBehaviour
     public Dictionary<int, string> commandTypes;
     public Dictionary<int, string> mergeTypes;
     public Dictionary<string, List<string>> outputClassFiles = new Dictionary<string, List<string>>();
-    string preoutputPath = "../Preoutput/";
-    string dllPath = @"../Preoutput/compiledScripts.dll"; // Cesta, kam uloûÌö DLL
+    string preoutputPath;
+    public string dllPath; // Cesta, kam uloûÌö DLL
     public List<string> OutputError = new List<string>();
-    public void initialise(List<Class_object> classObjects, Canvas canvasObj)
+    public string uroven;
+    private void Start()
+    {
+        preoutputPath = Application.persistentDataPath + "/Preoutput/";
+        if (!Directory.Exists(preoutputPath))
+        {
+            Directory.CreateDirectory(preoutputPath);
+        }
+    }
+    public void initialise(List<Class_object> classObjects, Canvas canvasObj,string level)
     {
         this.classObjects = classObjects;
         this.canvasObj = canvasObj;
-        
+        this.uroven = level;
+
         CloseButton.GetComponent<Button>().onClick.AddListener(() => closeCanvas());
         SaveButton.GetComponent<Button>().onClick.AddListener(() => saveFile());
     }
@@ -57,7 +67,7 @@ public class GenerateCode : MonoBehaviour
         {
             if(!(component is RectTransform)){Destroy(component);}
         }
-        List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas", "EditableCanvas" };
+        List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas", "EditableCanvas","Sun"};
         GameObject[] rootObjects = SceneManager.GetActiveScene().GetRootGameObjects();
         foreach (GameObject obj in rootObjects)
         {
@@ -79,7 +89,7 @@ public class GenerateCode : MonoBehaviour
 
     public void saveFile()
     {        
-        string[] files = Directory.GetFiles(@"../SampleCode/");
+        string[] files = Directory.GetFiles(Application.persistentDataPath + "/SampleCode/" + uroven + "/");
         foreach (string file in files)
         {
             File.Delete(file);
@@ -87,7 +97,7 @@ public class GenerateCode : MonoBehaviour
         }
         foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
         {
-            string filePath = @"../SampleCode/" + file.Key + ".cs";
+            string filePath = Application.persistentDataPath + "/SampleCode/" + uroven + "/" + file.Key + ".cs";
             try
             {
                 File.WriteAllLines(filePath, file.Value);
@@ -262,14 +272,15 @@ public class GenerateCode : MonoBehaviour
                 {
                     foreach (var loopKey in class_Object.commandEdges[method][node.Key])
                     {
-                        if (loopKey.Key == fromKey && lastKey != node.Key){isLoop = true;break; }
+                        if (loopKey.Key == fromKey && lastKey != node.Key && !usedKeys.Contains(node.Key)) { isLoop = true; break; }
                     }
-                }                
-            }
+                }
+            }            
             if (isLoop)
             {
                 commandTypes.Add(fromKey, "while");
-            } else
+            }
+            else
             {
                 commandTypes.Add(fromKey, "if");
             }
@@ -582,7 +593,8 @@ public class GenerateCode : MonoBehaviour
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
-
+        dllPath = preoutputPath + "compiledScripts_" + DateTime.Now.Ticks.ToString() + ".dll";
+        Debug.Log("DllPatdh " + dllPath);
         using (var fileStream = new FileStream(dllPath, FileMode.Create))
         {
             var result = compilation.Emit(fileStream); // Emit the compilation to the FileStream
@@ -624,11 +636,12 @@ public class GenerateCode : MonoBehaviour
         return unityAssemblies;
     }
 
-    public void LoadAssemblyAndAttachToGameObject(string dllPath, GameObject targetObject)
+    public void LoadAssemblyAndAttachToGameObject(GameObject targetObject)
     {
         try
         {
             // NaËÌtanie DLL s˙boru
+            Debug.Log("Idem nacitat z assembly " + dllPath);
             Assembly assembly = Assembly.LoadFrom(dllPath);
 
             // ZÌskaj typ triedy, ktor˙ chceö pridaù (musÌö vedieù meno triedy)
@@ -656,6 +669,6 @@ public class GenerateCode : MonoBehaviour
 
     public void AttachScriptToGameObject(GameObject targetObject)
     {
-        LoadAssemblyAndAttachToGameObject(dllPath, targetObject);
+        LoadAssemblyAndAttachToGameObject(targetObject);
     }
 }
