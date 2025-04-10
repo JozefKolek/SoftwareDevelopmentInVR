@@ -18,7 +18,7 @@ public class GenerateCode : MonoBehaviour
     public GameObject canvas;
     public GameObject CompilationCanvas;
     public GameObject EditCanvas;
-    public GameObject Result;
+    //public GameObject Result;
     public GameObject ErrorOutput;
     public GameObject CloseButton;
     public GameObject SaveButton;
@@ -62,11 +62,12 @@ public class GenerateCode : MonoBehaviour
         ErrorOutput.SetActive(false);
         ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = "";
 
+        GameObject Result =  CompilationCanvas.transform.Find("Result").gameObject;
+        Destroy(Result);
+        GC.Collect();
+        Result = new GameObject("Result");
+        Result.transform.SetParent(CompilationCanvas.transform, false);
 
-        foreach(var component in Result.GetComponents<Component>())
-        {
-            if(!(component is RectTransform)){Destroy(component);}
-        }
         List<string> forStay = new List<string>(){ "Directional Light", "MRTK XR Rig", "MRTKInputSimulator", "ActivityCanvas", "Canvas", "EventSystem", "CompilationCanvas", "EditableCanvas","Sun"};
         GameObject[] rootObjects = SceneManager.GetActiveScene().GetRootGameObjects();
         foreach (GameObject obj in rootObjects)
@@ -196,6 +197,7 @@ public class GenerateCode : MonoBehaviour
             canvas.SetActive(false);
             CompilationCanvas.SetActive(true);
             ErrorOutput.SetActive(false);
+            GameObject Result = CompilationCanvas.transform.Find("Result").gameObject;
             AttachScriptToGameObject(Result);            
         } else
         {
@@ -659,6 +661,8 @@ public class GenerateCode : MonoBehaviour
 
                     // Dynamicky vytvorÌme inötanciu triedy (pokiaæ m· pr·zdny konötruktor)
                     var scriptInstance = targetObject.AddComponent(type);
+                    Debug.Log(type.IsSubclassOf(typeof(MonoBehaviour))); // musÌ byù true
+                    Debug.Log(type.Assembly.FullName);
                     Debug.Log($"Trieda {type.Name} bola ˙speöne pripojen· k GameObjectu!");
                 }                
             }                        
