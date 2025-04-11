@@ -124,7 +124,7 @@ public class UML_class_diagram : MonoBehaviour
 
         GameObject GenerateCodeButton = Instantiate(buttonPrefab, content.transform);
         generateCode.initialise(classObjects, canvasObj,level);
-        GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.generateCode());
+        GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.GenerateCodeAsync());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
 
         RectTransform GenerateCodeForm = GenerateCodeButton.GetComponent<RectTransform>();

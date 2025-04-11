@@ -12,6 +12,7 @@ using TMPro;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine.SceneManagement;
+using System.Threading.Tasks;
 
 public class GenerateCode : MonoBehaviour
 {
@@ -109,97 +110,105 @@ public class GenerateCode : MonoBehaviour
             }
         }
     }
-    public void generateCode()
-    {               
+    public async void GenerateCodeAsync()
+    {
         this.class_Objects = classObjects;
         outputClassFiles = new Dictionary<string, List<string>>();
-        foreach (Class_object claz in classObjects)
+
+        await Task.Run(() =>
         {
-            output = new List<string>();
-            //libaries
-            foreach (string usen in claz.usings)
+            foreach (Class_object claz in classObjects)
             {
-                output.Add(usen);
-            }
-            //initialise class name
-            List<string> clazName = new List<string>();
-            if (!claz.visibility.Equals("Unknown")) { clazName.Add(claz.visibility); }
-            if (claz.isAbstract) { clazName.Add("abstract"); }
-            if (claz.isVirtual) { clazName.Add("virtual"); }
-            clazName.Add(claz.type);
-            clazName.Add(claz.name);
-            int counter = 0;
-            foreach (var connect in claz.connections)
-            {
-                if (connect.Value.Equals("Generalisation") || connect.Value.Equals("Realisation"))
+                output = new List<string>();
+
+                // usings
+                foreach (string usen in claz.usings)
+                    output.Add(usen);
+
+                // class header
+                List<string> clazName = new List<string>();
+                if (!claz.visibility.Equals("Unknown")) clazName.Add(claz.visibility);
+                if (claz.isAbstract) clazName.Add("abstract");
+                if (claz.isVirtual) clazName.Add("virtual");
+                clazName.Add(claz.type);
+                clazName.Add(claz.name);
+
+                int counter = 0;
+                foreach (var connect in claz.connections)
                 {
-                    counter++;
-                    if (counter == 1)
+                    if (connect.Value.Equals("Generalisation") || connect.Value.Equals("Realisation"))
                     {
-                        clazName.Add(":");
-                        clazName.Add(connect.Key);
+                        counter++;
+                        if (counter == 1)
+                        {
+                            clazName.Add(":");
+                            clazName.Add(connect.Key);
+                        }
+                        else
+                        {
+                            clazName.Add(", " + connect.Key);
+                        }
                     }
-                    else
-                    {
-                        clazName.Add(", " + connect.Key);
-                    }
-                }
-            }
-            clazName.Add("{");
-            output.Add(String.Join(" ", clazName));
-            string vypis = "";
-            foreach (string i in output)
-            {
-                vypis += i + "\n";
-            }
-            //adding attributes
-            foreach (var attribute in claz.attributes)
-            {
-                if (attribute.Contains("set;") || attribute.Contains("set;"))
-                {
-                    output.Add(attribute.Trim(' '));
-                }
-                else
-                {
-                    output.Add(attribute.Trim(' ') + ";");
                 }
 
-            }
-            //adding method and their body code
-            foreach (var method in claz.methods)
-            {
-                output.Add(method + " {");
-                generateMethodCode(claz, method);
+                clazName.Add("{");
+                output.Add(String.Join(" ", clazName));
+
+                // attributes
+                foreach (string attr in claz.attributes)
+                {
+                    if (attr.Contains("set;") || attr.Contains("get;"))
+                        output.Add(attr.Trim(' '));
+                    else
+                        output.Add(attr.Trim(' ') + ";");
+                }
+
+                // methods
+                foreach (string method in claz.methods)
+                {
+                    output.Add(method + " {");
+                    generateMethodCode(claz, method); // <- toto musÌ byù thread-safe!
+                    output.Add("}");
+                }
+
                 output.Add("}");
+
+                if (!outputClassFiles.ContainsKey(claz.name))
+                    outputClassFiles.Add(claz.name, output);
             }
-            output.Add("}");
-            if (!outputClassFiles.ContainsKey(claz.name)) { outputClassFiles.Add(claz.name, output); }
-        }
-        string folder = preoutputPath;
-        foreach(var file in Directory.GetFiles(folder, "*.cs")){File.Delete(file);}
-        Debug.Log("Vysledok");
-        foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
-        {
-            string filePath = preoutputPath + file.Key + ".cs";
-            try
+
+            // vyËistenie prieËinka
+            string folder = preoutputPath;
+            foreach (var file in Directory.GetFiles(folder, "*.cs"))
+                File.Delete(file);
+
+            foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
             {
-                File.Delete(filePath);
-                File.WriteAllLines(filePath, file.Value);                
+                string filePath = preoutputPath + file.Key + ".cs";
+                try
+                {
+                    File.Delete(filePath);
+                    File.WriteAllLines(filePath, file.Value);
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("An error occurred while writing to the file");
+                }
             }
-            catch (IOException)
-            {
-                Console.WriteLine("An error occurred while writting to the file");
-            }            
-        }
+        });
+
+        //  Sme sp‰ù na hlavnom vl·kne
         if (CompileUnityScriptsInFolder(preoutputPath))
         {
             EditCanvas.SetActive(false);
             canvas.SetActive(false);
             CompilationCanvas.SetActive(true);
             ErrorOutput.SetActive(false);
+
             GameObject Result = CompilationCanvas.transform.Find("Result").gameObject;
-            AttachScriptToGameObject(Result);            
-        } else
+            AttachScriptToGameObject(Result);
+        }
+        else
         {
             EditCanvas.SetActive(false);
             canvas.SetActive(false);
@@ -207,8 +216,8 @@ public class GenerateCode : MonoBehaviour
             ErrorOutput.SetActive(true);
             ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = string.Join('\n', OutputError);
         }
+    }
 
-    }    
     public void generateMethodCode(Class_object class_Object,string method)
     {
         int start = 1;
@@ -567,7 +576,7 @@ public class GenerateCode : MonoBehaviour
         return new List<int>(); // Ak cesta neexistuje
     }
     public bool CompileUnityScriptsInFolder(string folderPath)
-    {
+    {        
         if (!Directory.Exists(folderPath))
         {
             Debug.Log($"PrieËinok neexistuje: {folderPath}");
@@ -589,7 +598,6 @@ public class GenerateCode : MonoBehaviour
 
         // ZÌskame vöetky potrebnÈ kniûnice Unity (UnityEngine, UnityEngine.UI, UnityEditor)
         var references = GetUnityReferences();
-
         // Kompilujeme vöetko do jednej assembly
         var compilation = CSharpCompilation.Create(
             "UnityProjectCompilation",
