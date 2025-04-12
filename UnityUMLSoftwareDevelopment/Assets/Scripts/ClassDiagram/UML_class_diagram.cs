@@ -38,7 +38,10 @@ public class UML_class_diagram : MonoBehaviour
     public Sprite fullDiamond;
     private GameObject addEdgePopUp;
     private GameObject removeEdgePopUp;
+    GameObject AddClassButton = null;
+    GameObject GenerateCodeButton = null;
     private GameObject arrowHead;
+
 
     public float factor = 0.2f;
 
@@ -113,7 +116,7 @@ public class UML_class_diagram : MonoBehaviour
         dropdowns[1].ClearOptions();
         dropdowns[1].AddOptions(new List<string> { "Generalisation", "Realisation", "Composition", "Aggregation", "Dependency", "Asociation" });
 
-        GameObject AddClassButton = Instantiate(buttonPrefab, content.transform);
+        AddClassButton = Instantiate(buttonPrefab, content.transform);
         AddClassButton.GetComponent<Button>().onClick.AddListener(() => AddClass(AddClassPopUp));
         AddClassButton.GetComponent<Image>().color = Color.yellow;
 
@@ -122,7 +125,7 @@ public class UML_class_diagram : MonoBehaviour
         addClassForm.sizeDelta = new Vector2(150, 60);
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
-        GameObject GenerateCodeButton = Instantiate(buttonPrefab, content.transform);
+        GenerateCodeButton = Instantiate(buttonPrefab, content.transform);
         generateCode.initialise(classObjects, canvasObj,level);
         GenerateCodeButton.GetComponent<Button>().onClick.AddListener(() => generateCode.GenerateCodeAsync());
         GenerateCodeButton.GetComponent<Image>().color = Color.yellow;
@@ -331,7 +334,16 @@ public class UML_class_diagram : MonoBehaviour
             claz.hrany.Clear();
             claz.vrchol = null;
         }
-
+        if (GenerateCodeButton != null) { Destroy(GenerateCodeButton); }
+        if (AddClassButton != null) { Destroy(AddClassButton);}
+        List<string> forStay = new List<string>() {"Panel", "NonNativeKeyboard", "DropdownPath", "Button"};
+        foreach (Transform obj in editableCanvas.transform)
+        {
+            if (!forStay.Contains(obj.name) && obj != editableCanvas.transform)
+            {
+                Destroy(obj.gameObject);
+            }
+        }
         Canvas.ForceUpdateCanvases();
         StartCoroutine(GenerateUMLDiagram());
     }

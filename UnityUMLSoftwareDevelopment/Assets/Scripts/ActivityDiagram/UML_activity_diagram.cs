@@ -31,6 +31,8 @@ public class UML_activity_diagram : MonoBehaviour
     private GameObject addClassPopUP;
     private GameObject removeEdgePopUp;
     private GameObject addEdgePopUp;
+    private GameObject AddClassButton = null;
+    private GameObject CloseButton = null;
 
     private GeometryGraph graph;
     private LayoutAlgorithmSettings settings;
@@ -91,7 +93,7 @@ public class UML_activity_diagram : MonoBehaviour
         removeEdgePopUp = Instantiate(removeEdgePrefab, EditCanvas.transform);
         removeEdgePopUp.SetActive(false);
 
-        GameObject AddClassButton = Instantiate(buttonPrefab, content.transform);
+        AddClassButton = Instantiate(buttonPrefab, content.transform);
         AddClassButton.GetComponent<Button>().onClick.AddListener(() => AddClass());
         AddClassButton.GetComponent<Image>().color = Color.yellow;
 
@@ -100,7 +102,7 @@ public class UML_activity_diagram : MonoBehaviour
         addClassForm.sizeDelta = new Vector2(150, 60);
         AddClassButton.GetComponentInChildren<TextMeshProUGUI>().text = "Add class";
 
-        GameObject CloseButton = Instantiate(buttonPrefab, content.transform);
+        CloseButton = Instantiate(buttonPrefab, content.transform);
         CloseButton.GetComponent<Button>().onClick.AddListener(() => CloseActivityDiagram());
         CloseButton.GetComponent<Image>().color = Color.yellow;
 
@@ -252,6 +254,8 @@ public class UML_activity_diagram : MonoBehaviour
         actionNodes.Clear();
         MsaglActionEdges.Clear();
         MsaglActionNodes.Clear();
+        if (AddClassButton != null) { Destroy(AddClassButton); }
+        if(CloseButton != null) { Destroy(CloseButton);}
         Canvas.ForceUpdateCanvases();
         StartCoroutine(drawDiagram());
         foreach(var hrana in actionEdges.Keys)
