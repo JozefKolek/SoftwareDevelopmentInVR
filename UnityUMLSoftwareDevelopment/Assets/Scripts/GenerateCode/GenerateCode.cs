@@ -36,6 +36,9 @@ public class GenerateCode : MonoBehaviour
     public string dllPath; // Cesta, kam uloûÌö DLL
     public List<string> OutputError = new List<string>();
     public string uroven;
+    public int numOfCompilations = 0;
+    // ZÌskame vöetky potrebnÈ kniûnice Unity (UnityEngine, UnityEngine.UI, UnityEditor)
+    IEnumerable<MetadataReference> references;
     private void Start()
     {
         preoutputPath = Application.persistentDataPath + "/Preoutput/";
@@ -112,6 +115,7 @@ public class GenerateCode : MonoBehaviour
     }
     public async void GenerateCodeAsync()
     {
+        bool compilation = false;
         this.class_Objects = classObjects;
         outputClassFiles = new Dictionary<string, List<string>>();
 
@@ -194,11 +198,18 @@ public class GenerateCode : MonoBehaviour
                 {
                     Console.WriteLine("An error occurred while writing to the file");
                 }
+            }            
+            if(numOfCompilations == 0)
+            {
+                Debug.Log("Ziskal som referencie ");
+                references = GetUnityReferences();
             }
+            numOfCompilations++;
+            compilation = CompileUnityScriptsInFolder(preoutputPath);
         });
 
         //  Sme sp‰ù na hlavnom vl·kne
-        if (CompileUnityScriptsInFolder(preoutputPath))
+        if (compilation)
         {
             EditCanvas.SetActive(false);
             canvas.SetActive(false);
@@ -593,14 +604,12 @@ public class GenerateCode : MonoBehaviour
 
         // Kompilujeme VäETKY s˙bory naraz, nie jednotlivo!
         List<SyntaxTree> syntaxTrees = scriptFiles
-            .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), new CSharpParseOptions(preprocessorSymbols: new[] { "UNITY_EDITOR", "UNITY_2021" })))
+            .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), new CSharpParseOptions()))
             .ToList();
-
-        // ZÌskame vöetky potrebnÈ kniûnice Unity (UnityEngine, UnityEngine.UI, UnityEditor)
-        var references = GetUnityReferences();
+        
         // Kompilujeme vöetko do jednej assembly
         var compilation = CSharpCompilation.Create(
-            "UnityProjectCompilation",
+            $"UnityProjectCompilation_{DateTime.Now.Ticks}",
             syntaxTrees,
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
@@ -628,23 +637,11 @@ public class GenerateCode : MonoBehaviour
 
     private IEnumerable<MetadataReference> GetUnityReferences()
     {
-        // Cesta k prieËinku Unity, ktor˝ obsahuje vöetky kniûnice
-        string unityEditorPath = @"C:\Program Files\Unity\Hub\Editor\2021.3.23f1\Editor\Data\Managed\";
-
-        // ZÌskame vöetky .dll s˙bory v prieËinku Managed
-        var unityAssemblies = Directory.GetFiles(unityEditorPath, "*.dll", SearchOption.AllDirectories)                                        
-                                        .Select(assembly => MetadataReference.CreateFromFile(assembly))
-                                        .ToList();
-        foreach (var projectAssembliesDll in Directory.GetFiles(@"..\UnityUMLSoftwareDevelopment\Library\ScriptAssemblies","*.dll",SearchOption.AllDirectories)
-            .Select(assembly => MetadataReference.CreateFromFile(assembly)).ToList())
+        List<MetadataReference> unityAssemblies = new List<MetadataReference>();
+        foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
-            unityAssemblies.Add(projectAssembliesDll);
-        }
-        // Prid·me .NET kniûnice ako referencie
-        unityAssemblies.Add(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
-        unityAssemblies.Add(MetadataReference.CreateFromFile(typeof(Console).Assembly.Location));
-        unityAssemblies.Add(MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location));
-
+            unityAssemblies.Add(MetadataReference.CreateFromFile(assembly.Location));
+        }        
         return unityAssemblies;
     }
 

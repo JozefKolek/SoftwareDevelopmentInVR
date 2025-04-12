@@ -340,7 +340,8 @@ public class UML_activity_diagram : MonoBehaviour
         {
             TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
             string targetClass = dropdowns[0].options[dropdowns[0].value].text;
-            int targetIndex = Int32.Parse(targetClass.Split(" ")[0]);
+            Debug.Log("Pridavam target class " + targetClass);
+            int targetIndex = Int32.Parse(targetClass);
             if (actionNodes.ContainsKey(targetIndex))
             {
                 class_Diagram.AddActionEdge(key, targetIndex, method, "normal", clasa.name);
