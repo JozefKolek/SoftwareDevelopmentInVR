@@ -92,26 +92,30 @@ public class GenerateCode : MonoBehaviour
         EditCanvas.SetActive(true);
     }
 
-    public void saveFile()
-    {        
-        string[] files = Directory.GetFiles(Application.persistentDataPath + "/SampleCode/" + uroven + "/");
-        foreach (string file in files)
-        {
-            File.Delete(file);
-            Debug.Log("Deleted: " + file);
-        }
-        foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
-        {
-            string filePath = Application.persistentDataPath + "/SampleCode/" + uroven + "/" + file.Key + ".cs";
-            try
+    public async void saveFile()
+    {
+        string folderPath = Application.persistentDataPath + "/SampleCode/" + uroven + "/";
+        string[] files = Directory.GetFiles(folderPath);
+        await Task.Run(() =>
+        {            
+            foreach (string file in files)
             {
-                File.WriteAllLines(filePath, file.Value);
+                File.Delete(file);
+                Debug.Log("Deleted: " + file);
             }
-            catch (IOException)
+            foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
             {
-                Console.WriteLine("An error occurred while writting to the file");
+                string filePath = folderPath + file.Key + ".cs";
+                try
+                {
+                    File.WriteAllLines(filePath, file.Value);
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("An error occurred while writting to the file");
+                }
             }
-        }
+        });        
     }
     public async void GenerateCodeAsync()
     {
