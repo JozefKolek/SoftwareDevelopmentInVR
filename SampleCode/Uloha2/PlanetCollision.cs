@@ -17,28 +17,5 @@ public class PlanetCollision : MonoBehaviour
         originalPosition = transform.position;
         var planets = GameObject.FindGameObjectsWithTag("Planet");
         foreach(var i in planets) { isDodging.Add(false); }
-    }
-
-    void Update()
-    {
-        var planets = GameObject.FindGameObjectsWithTag("Planet");
-
-        for (int i = 0; i < planets.Length; i++)
-        {
-            if (planets[i] != gameObject)
-            {
-                float distance = transform.position.x -  planets[i].transform.position.x;
-                if (distance < collisionThreshold && !isDodging[i])
-                {
-                    isDodging[i] = true;
-                    Debug.Log($"{gameObject.name} uhýba pred {planets[i].name}!");
-                    transform.position += Vector3.down * dodgeDistance;
-                } else if (isDodging[i] && distance >= collisionThreshold) 
-                {
-                    transform.position -= Vector3.down * dodgeDistance;
-                    isDodging[i] = false;
-                }
-            }
-        }
-    }    
+    }        
 }

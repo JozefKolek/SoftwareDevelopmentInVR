@@ -13,6 +13,7 @@ using Radishmouse;
 using Microsoft.Msagl.Core;
 using MixedReality.Toolkit.UX.Experimental;
 using System.IO;
+using System.Threading.Tasks;
 
 public class UML_class_diagram : MonoBehaviour
 {
@@ -68,7 +69,7 @@ public class UML_class_diagram : MonoBehaviour
         Debug.Log("Temporary project path: " + temporaryProjectPath);
     }
 
-    public void setPath()
+    public async void setPath()
     {
         canvasObj.gameObject.SetActive(true);
         activityCanvasObj.SetActive(false);
@@ -89,8 +90,11 @@ public class UML_class_diagram : MonoBehaviour
                 claz.vrchol = null;
             }
         }
-        Reading_graph read = new Reading_graph(temporaryProjectPath + uroven + "/");
-        classObjects = read.read_from_code();
+        await Task.Run(() =>
+        {
+            Reading_graph read = new Reading_graph(temporaryProjectPath + uroven + "/");
+            classObjects = read.read_from_code();
+        });        
         redrawGraph();
     }
 
