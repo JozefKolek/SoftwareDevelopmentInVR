@@ -13,6 +13,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis.Emit;
 
 public class GenerateCode : MonoBehaviour
 {
@@ -47,7 +48,7 @@ public class GenerateCode : MonoBehaviour
             Directory.CreateDirectory(preoutputPath);
         }
     }
-    public void initialise(List<Class_object> classObjects, Canvas canvasObj,string level)
+    public async void initialise(List<Class_object> classObjects, Canvas canvasObj,string level)
     {
         this.classObjects = classObjects;
         this.canvasObj = canvasObj;
@@ -55,6 +56,15 @@ public class GenerateCode : MonoBehaviour
 
         CloseButton.GetComponent<Button>().onClick.AddListener(() => closeCanvas());
         SaveButton.GetComponent<Button>().onClick.AddListener(() => saveFile());
+        await Task.Run(() =>
+        {
+            if (numOfCompilations == 0)
+            {
+                Debug.Log("Ziskal som referencie ");
+                references = GetUnityReferences();
+            }
+            numOfCompilations++;
+        });
     }
 
     private void closeCanvas()
@@ -122,7 +132,10 @@ public class GenerateCode : MonoBehaviour
         bool compilation = false;
         this.class_Objects = classObjects;
         outputClassFiles = new Dictionary<string, List<string>>();
-
+        EditCanvas.SetActive(false);
+        canvas.SetActive(false);
+        CompilationCanvas.SetActive(true);
+        ErrorOutput.SetActive(false);
         await Task.Run(() =>
         {
             foreach (Class_object claz in classObjects)
@@ -132,7 +145,6 @@ public class GenerateCode : MonoBehaviour
                 // usings
                 foreach (string usen in claz.usings)
                     output.Add(usen);
-
                 // class header
                 List<string> clazName = new List<string>();
                 if (!claz.visibility.Equals("Unknown")) clazName.Add(claz.visibility);
@@ -170,15 +182,13 @@ public class GenerateCode : MonoBehaviour
                     else
                         output.Add(attr.Trim(' ') + ";");
                 }
-
                 // methods
                 foreach (string method in claz.methods)
                 {
                     output.Add(method + " {");
-                    generateMethodCode(claz, method); // <- toto musÌ byù thread-safe!
+                    generateMethodCode(claz, method);
                     output.Add("}");
                 }
-
                 output.Add("}");
 
                 if (!outputClassFiles.ContainsKey(claz.name))
@@ -189,7 +199,6 @@ public class GenerateCode : MonoBehaviour
             string folder = preoutputPath;
             foreach (var file in Directory.GetFiles(folder, "*.cs"))
                 File.Delete(file);
-
             foreach (KeyValuePair<string, List<string>> file in outputClassFiles)
             {
                 string filePath = preoutputPath + file.Key + ".cs";
@@ -202,35 +211,21 @@ public class GenerateCode : MonoBehaviour
                 {
                     Console.WriteLine("An error occurred while writing to the file");
                 }
-            }            
-            if(numOfCompilations == 0)
-            {
-                Debug.Log("Ziskal som referencie ");
-                references = GetUnityReferences();
             }
-            numOfCompilations++;
-            compilation = CompileUnityScriptsInFolder(preoutputPath);
+            compilation = CompileUnityScriptsInFolder(preoutputPath);            
         });
-
         //  Sme sp‰ù na hlavnom vl·kne
+        CompilationCanvas.transform.Find("LoadingNotice").gameObject.SetActive(false);
         if (compilation)
-        {
-            EditCanvas.SetActive(false);
-            canvas.SetActive(false);
-            CompilationCanvas.SetActive(true);
-            ErrorOutput.SetActive(false);
-
+        {                        
             GameObject Result = CompilationCanvas.transform.Find("Result").gameObject;
             AttachScriptToGameObject(Result);
         }
         else
         {
-            EditCanvas.SetActive(false);
-            canvas.SetActive(false);
-            CompilationCanvas.SetActive(true);
             ErrorOutput.SetActive(true);
             ErrorOutput.GetComponentInChildren<TextMeshProUGUI>().text = string.Join('\n', OutputError);
-        }
+        }        
     }
 
     public void generateMethodCode(Class_object class_Object,string method)
@@ -591,7 +586,7 @@ public class GenerateCode : MonoBehaviour
         return new List<int>(); // Ak cesta neexistuje
     }
     public bool CompileUnityScriptsInFolder(string folderPath)
-    {        
+    {
         if (!Directory.Exists(folderPath))
         {
             Debug.Log($"PrieËinok neexistuje: {folderPath}");
@@ -605,12 +600,10 @@ public class GenerateCode : MonoBehaviour
             Debug.LogWarning($"V prieËinku {folderPath} neboli n·jdenÈ ûiadne C# skripty.");
             return false;
         }
-
         // Kompilujeme VäETKY s˙bory naraz, nie jednotlivo!
         List<SyntaxTree> syntaxTrees = scriptFiles
             .Select(file => CSharpSyntaxTree.ParseText(File.ReadAllText(file), new CSharpParseOptions()))
             .ToList();
-        
         // Kompilujeme vöetko do jednej assembly
         var compilation = CSharpCompilation.Create(
             $"UnityProjectCompilation_{DateTime.Now.Ticks}",
@@ -620,10 +613,10 @@ public class GenerateCode : MonoBehaviour
         );
         dllPath = preoutputPath + "compiledScripts_" + DateTime.Now.Ticks.ToString() + ".dll";
         Debug.Log("DllPatdh " + dllPath);
-        using (var fileStream = new FileStream(dllPath, FileMode.Create))
+        using (var ms = new MemoryStream())
         {
-            var result = compilation.Emit(fileStream); // Emit the compilation to the FileStream
-
+            var emitOptions = new EmitOptions(debugInformationFormat: DebugInformationFormat.Pdb);
+            var result = compilation.Emit(ms, options: emitOptions);
             if (!result.Success)
             {
                 OutputError.Add("Chyby pri kompil·cii Unity skriptov:");
@@ -633,8 +626,8 @@ public class GenerateCode : MonoBehaviour
                 }
                 return false;
             }
-        }
-
+            File.WriteAllBytes(dllPath, ms.ToArray()); // r˝chly bin·rny z·pis
+        }        
         Debug.Log($"Kompil·cia ˙speön·! DLL uloûen· na {dllPath}");
         return true;
     }
@@ -642,11 +635,11 @@ public class GenerateCode : MonoBehaviour
     private IEnumerable<MetadataReference> GetUnityReferences()
     {
         List<MetadataReference> unityAssemblies = new List<MetadataReference>();
-        foreach(var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             unityAssemblies.Add(MetadataReference.CreateFromFile(assembly.Location));
-        }        
-        return unityAssemblies;
+        }
+        return unityAssemblies;        
     }
 
     public void LoadAssemblyAndAttachToGameObject(GameObject targetObject)
