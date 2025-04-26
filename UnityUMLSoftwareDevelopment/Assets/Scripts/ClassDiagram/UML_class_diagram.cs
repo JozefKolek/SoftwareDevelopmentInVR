@@ -55,6 +55,7 @@ public class UML_class_diagram : MonoBehaviour
     private string temporaryProjectPath;
     private void Start()
     {
+        canvasObj.transform.Find("RadingNotice").gameObject.SetActive(false);
         activityCanvasObj.SetActive(false);
         compileCanvasObj.SetActive(false);               
         lastPosition = content.GetComponent<RectTransform>().anchoredPosition;
@@ -74,6 +75,7 @@ public class UML_class_diagram : MonoBehaviour
         canvasObj.gameObject.SetActive(true);
         activityCanvasObj.SetActive(false);
         editableCanvas.gameObject.SetActive(true);
+        canvasObj.transform.Find("RadingNotice").gameObject.SetActive(true);
         TMP_Dropdown dropdown = editableCanvas.transform.Find("DropdownPath").GetComponentInChildren<TMP_Dropdown>();
 
         string uroven = dropdown.options[dropdown.value].text;
@@ -94,7 +96,8 @@ public class UML_class_diagram : MonoBehaviour
         {
             Reading_graph read = new Reading_graph(temporaryProjectPath + uroven + "/");
             classObjects = read.read_from_code();
-        });        
+        });
+        canvasObj.transform.Find("RadingNotice").gameObject.SetActive(false);
         redrawGraph();
     }
 

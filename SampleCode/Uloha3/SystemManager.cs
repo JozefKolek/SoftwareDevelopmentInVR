@@ -1,7 +1,7 @@
 using UnityEngine;
 public class SystemManager : MonoBehaviour {
 private PlanetSpawner spawner;
-public int initialPlanets= 2;
+public int initialPlanets= 8;
 public int maxPlanets= 20;
 private int createdPlanets= 0;
 void Start() {

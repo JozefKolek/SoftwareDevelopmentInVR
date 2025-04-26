@@ -1,7 +1,7 @@
 using UnityEngine;
 public class GameManager : MonoBehaviour {
 private ShapeMover shapeMover;
-internal void Start() {
+void Start() {
 shapeMover = GetComponent<ShapeMover>();
 if (shapeMover == null)
 {

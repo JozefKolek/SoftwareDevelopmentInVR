@@ -7,12 +7,9 @@ private int createdPlanets= 0;
 void Start() {
 spawner = gameObject.AddComponent<PlanetSpawner>();
 int i = 0;
-while (i < initialPlanets)
-{
 spawner.CreatePlanet(i);
 createdPlanets++;
 i++;
-}
 SetRandomFunctions();
 }
 public void SetRandomFunctions() {

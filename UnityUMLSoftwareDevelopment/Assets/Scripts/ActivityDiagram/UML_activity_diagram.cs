@@ -345,11 +345,13 @@ public class UML_activity_diagram : MonoBehaviour
             TMP_Dropdown[] dropdowns = addEdgePopUp.GetComponentsInChildren<TMP_Dropdown>();
             string targetClass = dropdowns[0].options[dropdowns[0].value].text;
             Debug.Log("Pridavam target class " + targetClass);
-            int targetIndex = Int32.Parse(targetClass);
-            if (actionNodes.ContainsKey(targetIndex))
+            if (Int32.TryParse(targetClass, out int targetIndex))
             {
-                class_Diagram.AddActionEdge(key, targetIndex, method, "normal", clasa.name);
-                RedrawDiagram();
+                if (actionNodes.ContainsKey(targetIndex))
+                {
+                    class_Diagram.AddActionEdge(key, targetIndex, method, "normal", clasa.name);
+                    RedrawDiagram();
+                }
             }
         }
     }
@@ -417,18 +419,20 @@ public class UML_activity_diagram : MonoBehaviour
         if (gruf.ContainsKey(key))
         {
             TMP_Dropdown targetClassesMenu = removeEdgePopUp.GetComponentInChildren<TMP_Dropdown>();
-            string target_class = targetClassesMenu.options[targetClassesMenu.value].text;
-            int targetIndex = Int32.Parse(target_class.Split(" ")[0]);
-            if (gruf.ContainsKey(key))
+            string target_class = targetClassesMenu.options[targetClassesMenu.value].text;                        
+            if (Int32.TryParse(target_class.Split(" ")[0], out int targetIndex))
             {
-                gruf[key].Remove(targetIndex);
-            }
-            if (actionEdges.ContainsKey(key + " " + targetIndex))
-            {
-                Destroy(actionEdges[key + " " + targetIndex]);
-                actionEdges.Remove(key + " " + targetIndex);
-                class_Diagram.removeActionEdge(key, targetIndex, method, clasa.name);
-                RedrawDiagram();
+                if (gruf.ContainsKey(key))
+                {
+                    gruf[key].Remove(targetIndex);
+                }
+                if (actionEdges.ContainsKey(key + " " + targetIndex))
+                {
+                    Destroy(actionEdges[key + " " + targetIndex]);
+                    actionEdges.Remove(key + " " + targetIndex);
+                    class_Diagram.removeActionEdge(key, targetIndex, method, clasa.name);
+                    RedrawDiagram();
+                }
             }
         }
     }

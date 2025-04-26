@@ -136,6 +136,7 @@ public class GenerateCode : MonoBehaviour
         canvas.SetActive(false);
         CompilationCanvas.SetActive(true);
         ErrorOutput.SetActive(false);
+        CompilationCanvas.transform.Find("LoadingNotice").gameObject.SetActive(true);
         await Task.Run(() =>
         {
             foreach (Class_object claz in classObjects)
