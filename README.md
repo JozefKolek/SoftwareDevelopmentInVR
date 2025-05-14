@@ -7,6 +7,7 @@ Cieľom tohto projektu je vytvoriť prostredie pre vývoj softvéru vo VR, ktor�
   1) Naklonujte si celý repozitár, aby ste ho mali u seba lokálne uložený. Tu je url repozitára: https://github.com/JozefKolek/SoftwareDevelopmentInVR.git
   2) Nainštalujte si Unity s verziou 2021.3.23f1
   3) V priečinku SampleCode nájdete priečinky Úloha1, Úloha2, Úloha3 obahujúce príklady, na ktorých si môžete aplikáciu vyskúšať. Tieto priečinky alebo vaše vlastné je potrebné       uložiť potom do priečinka: C:\Users\%user%\AppData\LocalLow\DefaultCompany\Ajeje\SampleCode
+     
 **Fungovanie aplikácie**
   1) Načítanie diagramu tried cez selekt box a tlačidlo "Read" na vedľajšom plátne.
   2) Zmena názvu metódy, atribútu cez kliknutie tlačidla "Edit"
